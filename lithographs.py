@@ -158,7 +158,7 @@ class Lithograph(Core):
         transitions = self._know(self.transitions)
 
         # begin configuration
-        configuration = {'species': [], 'reactions': {}, 'bonds': {}, 'repulsions': {}}
+        configuration = {'reactions': [], 'species': [], 'bonds': [], 'repulsions': []}
 
         # for each transition
         species = []
@@ -169,10 +169,18 @@ class Lithograph(Core):
 
             # add all species
             fragments = transition.split('-')
-            species.append(fragments[0] + fragments[1])
-            species.append(fragments[2])
-            species.append(fragments[0])
-            species.append(fragments[1] + fragments[2])
+            reactant = fragments[0]
+            reactantii = fragments[1] + fragments[2]
+            product = fragments[0] + fragments[1]
+            productii = fragments[2]
+
+            # add to species
+            species += [reactant, reactantii, product, productii]
+
+            # make reaction
+            reaction = {'transition': transition, 'reactant': reactant, 'reactantii': reactantii}
+            reaction.update({'product': product, 'productii': productii, 'catalysis': 0})
+            configuration['reactions'].append(reaction)
 
         # remove duplicates and sort
         species = list(set(species))
@@ -182,6 +190,28 @@ class Lithograph(Core):
 
             # make entry
             configuration['species'].append({'chemical': chemical, 'quantity': 0})
+
+            # get all bonds and repulsions
+            pairs = zip(chemical[:-1], chemical[1:])
+            bonds += [''.join(pair) for pair in pairs]
+
+            # get all bonds and repulsions
+            triplets = zip(chemical[:-2], chemical[1:-1], chemical[2:])
+            repulsions += [''.join([triplet[0], triplet[2]]) for triplet in triplets]
+
+        # add each bond
+        bonds = list(set(bonds))
+        for bond in bonds:
+
+            # make entry
+            configuration['bonds'].append({'bond': bond, 'energy': 0})
+
+        # add each repulsion
+        repulsions = list(set(repulsions))
+        for repulsion in repulsions:
+
+            # make entry
+            configuration['repulsions'].append({'repulsion': repulsion, 'energy': 0})
 
         # dump into yaml and format
         destination = self.transitions.replace('.txt', '.yaml')
