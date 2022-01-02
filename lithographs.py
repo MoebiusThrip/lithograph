@@ -144,6 +144,48 @@ class Lithograph(Core):
 
         return None
 
+    def _orient(self, fragment, fragmentii=' '):
+        """Orient fragments and combine into standard species.
+
+        Arguments:
+            fragment: str
+            fragmentii: str
+
+        Returns:
+            None
+        """
+
+        # reverse second fragment if upper is first
+        if fragmentii[0].isupper():
+
+            # reverse
+            tokens = list(fragmentii)
+            tokens.reverse()
+            fragmentii = ''.join(tokens).strip()
+
+        return None
+
+    def _parse(self, transition):
+        """Parse a transition state into reactants and products.
+
+        Arguments:
+            transition: str
+
+        Returns:
+            None
+        """
+
+        # get fragments
+        fragments = transition.split('-')
+
+        # combine fragments
+        nucleophile = self._orient(fragments[0])
+        electrophile = self._orient(fragments[1], fragments[2])
+        product = self._orient(fragments[0], fragments[1])
+        leaver = self._orient(fragments[2])
+
+        return nucleophile, electrophile, product, leaver
+
     def _generate(self):
         """Generate the reaction information from list of transition states.
 
@@ -162,7 +204,6 @@ class Lithograph(Core):
 
         # for each transition
         species = []
-        reactions = []
         bonds = []
         repulsions = []
         for transition in transitions:
