@@ -468,7 +468,7 @@ class Lithograph(Core):
 
                 # calculate transition activation energy
                 transition = [entry + change for entry, change in zip(point, delta)]
-                activation = energy + math.log(reaction.forward * (polarity > 0) + reaction.backward * (polarity < 0))
+                activation = energy - math.log(reaction.forward * (polarity > 0) + reaction.backward * (polarity < 0))
 
                 # calculate final point
                 delta = [0.0] * len(chemicals)
