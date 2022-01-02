@@ -144,26 +144,29 @@ class Lithograph(Core):
 
         return None
 
-    def _orient(self, fragment, fragmentii=' '):
-        """Orient fragments and combine into standard species.
+    def _flip(self, chemical):
+        """Flip chemical into standard orientation.
 
         Arguments:
-            fragment: str
-            fragmentii: str
+            chemical: str
 
         Returns:
-            None
+            str
         """
 
-        # reverse second fragment if upper is first
-        if fragmentii[0].isupper():
+        # pair with reversal
+        pair = [chemical, chemical[::-1]]
 
-            # reverse
-            tokens = list(fragmentii)
-            tokens.reverse()
-            fragmentii = ''.join(tokens).strip()
+        # sort alphabetically
+        pair.sort()
 
-        return None
+        # sort by nucleophile in beginnig
+        pair.sort(key=lambda entry: entry[0].isupper(), reverse=True)
+
+        # choose first
+        choice = pair[0]
+
+        return choice
 
     def _parse(self, transition):
         """Parse a transition state into reactants and products.
@@ -175,16 +178,22 @@ class Lithograph(Core):
             None
         """
 
-        # get fragments
-        fragments = transition.split('-')
+        # split into nucleophile, electrophile, and leaving group
+        nucleophile, electrophile, leaver = transition.split('-')
 
-        # combine fragments
-        nucleophile = self._orient(fragments[0])
-        electrophile = self._orient(fragments[1], fragments[2])
-        product = self._orient(fragments[0], fragments[1])
-        leaver = self._orient(fragments[2])
+        # combine electrophile and nucleophile into product
+        def orienting(fragment): return fragment if fragment[0].islower() else fragment[::-1]
+        product = nucleophile + orienting(electrophile)
 
-        return nucleophile, electrophile, product, leaver
+        # combine electrophile and leaving group into reactant
+        def orienting(fragment): return fragment if fragment[-1].islower() else fragment[::-1]
+        reactant = orienting(electrophile) + leaver
+
+        # flip all members
+        chemicals = [self._flip(chemical) for chemical in (nucleophile, reactant, product, leaver)]
+        nucleophile, reactant, product, leaver = chemicals
+
+        return nucleophile, reactant, product, leaver
 
     def _generate(self):
         """Generate the reaction information from list of transition states.
@@ -208,23 +217,21 @@ class Lithograph(Core):
         repulsions = []
         for transition in transitions:
 
-            # add all species
-            fragments = transition.split('-')
-            reactant = fragments[0]
-            reactantii = fragments[1] + fragments[2]
-            product = fragments[0] + fragments[1]
-            productii = fragments[2]
+            # parse into species and add
+            chemicals = self._parse(transition)
+            species += chemicals
 
-            # add to species
-            species += [reactant, reactantii, product, productii]
+            # unpack
+            nucleophile, reactant, product, leaver = chemicals
 
             # make reaction
-            reaction = {'transition': transition, 'reactant': reactant, 'reactantii': reactantii}
-            reaction.update({'product': product, 'productii': productii, 'catalysis': 0})
+            reaction = {'transition': transition, 'nucleophile': nucleophile, 'reactant': reactant}
+            reaction.update({'product': product, 'leaver': leaver, 'catalysis': 0, 'color': 'black'})
             configuration['reactions'].append(reaction)
 
         # remove duplicates and sort
         species = list(set(species))
+        species.sort()
 
         # add each entry
         for chemical in species:
@@ -232,16 +239,17 @@ class Lithograph(Core):
             # make entry
             configuration['species'].append({'chemical': chemical, 'quantity': 0})
 
-            # get all bonds and repulsions
+            # get all bonds
             pairs = zip(chemical[:-1], chemical[1:])
-            bonds += [''.join(pair) for pair in pairs]
+            bonds += [self._flip(''.join(pair)) for pair in pairs]
 
-            # get all bonds and repulsions
+            # get all repulsions
             triplets = zip(chemical[:-2], chemical[1:-1], chemical[2:])
-            repulsions += [''.join([triplet[0], triplet[2]]) for triplet in triplets]
+            repulsions += [self._flip(''.join([triplet[0], triplet[2]])) for triplet in triplets]
 
         # add each bond
         bonds = list(set(bonds))
+        bonds.sort()
         for bond in bonds:
 
             # make entry
@@ -249,6 +257,7 @@ class Lithograph(Core):
 
         # add each repulsion
         repulsions = list(set(repulsions))
+        repulsions.sort()
         for repulsion in repulsions:
 
             # make entry
