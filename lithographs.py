@@ -20,6 +20,19 @@ import calendar
 import math
 import numpy
 
+# import sklearn
+from sklearn.linear_model import LinearRegression
+from sklearn.cluster import KMeans
+from sklearn.svm import OneClassSVM, SVC
+from sklearn.decomposition import PCA
+
+# import matplotlib for plots
+from matplotlib import pyplot
+from matplotlib import style as Style
+from matplotlib import rcParams
+Style.use('fast')
+rcParams['axes.formatter.useoffset'] = False
+
 
 # class Lithograph to do OMI data reduction
 class Lithograph(Core):
@@ -411,7 +424,7 @@ class Lithograph(Core):
 
         return repulsions
 
-    def etch(self, number=2):
+    def etch(self, number=20):
         """Etch a glass for a number of steps.
 
         Arguments:
@@ -499,5 +512,67 @@ class Lithograph(Core):
             # update records
             self.etching.append(etching)
             self.lattice += lattice
+
+        return None
+
+    def peer(self):
+        """See a flat representation of the trajectory.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # create a matrix from all points in the etching
+        matrix = []
+        etching = self.etching
+        for etch in etching:
+
+            # add all points
+            matrix += etch[2:5]
+
+        # create decomposition
+        matrix = numpy.array(matrix)
+        machine = PCA(n_components=2)
+        machine.fit(matrix)
+
+        # begin plot
+        pyplot.clf()
+
+        # plot all lattice slats
+        for slat in self.lattice:
+
+            # get the point from the machine
+            points = machine.transform(slat[2:5])
+
+            # calculate a line width for the weight
+            weight = slat[0]
+            width = (weight + 0.1) * 5
+
+            # plot the line
+            horizontals = [point[0] for point in points]
+            verticals = [point[1] for point in points]
+            pyplot.plot(horizontals, verticals, color='gray', marker='o', linewidth=width)
+
+        # plot all etchings
+        for slat in self.etching:
+
+            # get the point from the machine
+            points = machine.transform(slat[2:5])
+
+            # get the color and set the width
+            color = slat[0]
+            width = 1
+
+            # plot the line
+            horizontals = [point[0] for point in points]
+            verticals = [point[1] for point in points]
+            pyplot.plot(horizontals, verticals, color=color, marker='o', linewidth=width)
+
+        # save the plot and clear
+        pyplot.savefig('peer.png')
+        pyplot.clf()
 
         return None
