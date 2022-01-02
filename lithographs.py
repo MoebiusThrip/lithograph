@@ -554,7 +554,7 @@ class Lithograph(Core):
             # plot the line
             horizontals = [point[0] for point in points]
             verticals = [point[1] for point in points]
-            pyplot.plot(horizontals, verticals, color='gray', marker='o', linewidth=width)
+            pyplot.plot(horizontals, verticals, color='gray', marker=',', linewidth=width)
 
         # plot all etchings
         for slat in self.etching:
@@ -569,7 +569,7 @@ class Lithograph(Core):
             # plot the line
             horizontals = [point[0] for point in points]
             verticals = [point[1] for point in points]
-            pyplot.plot(horizontals, verticals, color=color, marker='o', linewidth=width)
+            pyplot.plot(horizontals, verticals, color=color, marker='+', linewidth=width)
 
         # save the plot and clear
         pyplot.savefig('peer.png')
