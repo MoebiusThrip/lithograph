@@ -1,5 +1,9 @@
 # lithographs.py for the Lithograph class to make OMI Rawflux hdf5 files
 
+# import cores
+from cores import Core
+from reactions import Reaction
+
 # import general tools
 import sys
 import re
@@ -16,9 +20,6 @@ import calendar
 import math
 import numpy
 
-# import cores
-from cores import Core
-
 
 # class Lithograph to do OMI data reduction
 class Lithograph(Core):
@@ -28,7 +29,7 @@ class Lithograph(Core):
         Core
     """
 
-    def __init__(self, transitions):
+    def __init__(self, yam):
         """Initialize a Lithograph instance.
 
         Arguments:
@@ -38,8 +39,19 @@ class Lithograph(Core):
             None
         """
 
-        # generate the configuration from transitions file
-        self.transitions = transitions
+        # get the yaml file
+        self.yam = yam
+
+        # reserve for bonds, species, and forces
+        self.chemicals = []
+        self.species = {}
+        self.bonds = {}
+        self.forces = {}
+        self._populate()
+
+        # begin the lattice and the etching
+        self.lattice = []
+        self.etching = []
 
         return
 
@@ -54,10 +66,10 @@ class Lithograph(Core):
         """
 
         # display contents
-        self._tell(self.paths)
+        self._tell(self)
 
         # create representation
-        representation = ' < Lithograph instance at: {} -> {} >'.format(self.source, self.sink)
+        representation = ' < Lithograph instance at: {} >'.format(self.yam)
 
         return representation
 
@@ -78,6 +90,22 @@ class Lithograph(Core):
             information = yaml.safe_load(pointer)
 
         return information
+
+    def _bind(self, chemical):
+        """Create list of bonds in a chemical.
+
+        Arguments:
+            chemical: str
+
+        Returns:
+            list of str
+        """
+
+        pairs = zip(chemical[:-1], chemical[1:])
+        bonds = [self._flip(''.join(pair)) for pair in pairs]
+        bonds.sort()
+
+        return bonds
 
     def _dispense(self, information, destination):
         """Load in a yaml file.
@@ -144,6 +172,22 @@ class Lithograph(Core):
 
         return None
 
+    def _energize(self, point):
+        """Calculate the energy of a point.
+
+        Arguments:
+            point: list of ints
+
+        Returns:
+            float
+        """
+
+        # add up all the energies
+        chemicals = self.chemicals
+        energy = sum([quantity * self.species[chemical]['energy'] for quantity, chemical in zip(point, chemicals)])
+
+        return energy
+
     def _flip(self, chemical):
         """Flip chemical into standard orientation.
 
@@ -175,7 +219,7 @@ class Lithograph(Core):
             transition: str
 
         Returns:
-            None
+            list of str
         """
 
         # split into nucleophile, electrophile, and leaving group
@@ -190,26 +234,26 @@ class Lithograph(Core):
         reactant = orienting(electrophile) + leaver
 
         # flip all members
-        chemicals = [self._flip(chemical) for chemical in (nucleophile, reactant, product, leaver)]
-        nucleophile, reactant, product, leaver = chemicals
+        chemicals = [electrophile, nucleophile, reactant, product, leaver]
+        chemicals = [self._flip(chemical) for chemical in chemicals]
 
-        return nucleophile, reactant, product, leaver
+        return chemicals
 
-    def _generate(self):
+    def _generate(self, text):
         """Generate the reaction information from list of transition states.
 
         Arguments:
-            None
+            text: text file of transitions
 
         Returns:
             None
         """
 
         # get information from transitions file
-        transitions = self._know(self.transitions)
+        transitions = self._know(text)
 
         # begin configuration
-        configuration = {'reactions': [], 'species': [], 'bonds': [], 'repulsions': []}
+        configuration = {'file': self.yam, 'reactions': [], 'species': [], 'bonds': [], 'repulsions': []}
 
         # for each transition
         species = []
@@ -217,16 +261,17 @@ class Lithograph(Core):
         repulsions = []
         for transition in transitions:
 
-            # parse into species and add
+            # add to species, except for electrophile
             chemicals = self._parse(transition)
-            species += chemicals
+            species += chemicals[1:]
 
             # unpack
-            nucleophile, reactant, product, leaver = chemicals
+            electrophile, nucleophile, reactant, product, leaver = chemicals
 
             # make reaction
-            reaction = {'transition': transition, 'nucleophile': nucleophile, 'reactant': reactant}
-            reaction.update({'product': product, 'leaver': leaver, 'catalysis': 0, 'color': 'black'})
+            reaction = {'transition': transition, 'electrophile': electrophile, 'nucleophile': nucleophile}
+            reaction.update({'reactant': reactant, 'product': product, 'leaver': leaver})
+            reaction.update({'catalysis': 0, 'color': 'black'})
             configuration['reactions'].append(reaction)
 
         # remove duplicates and sort
@@ -239,13 +284,9 @@ class Lithograph(Core):
             # make entry
             configuration['species'].append({'chemical': chemical, 'quantity': 0})
 
-            # get all bonds
-            pairs = zip(chemical[:-1], chemical[1:])
-            bonds += [self._flip(''.join(pair)) for pair in pairs]
-
-            # get all repulsions
-            triplets = zip(chemical[:-2], chemical[1:-1], chemical[2:])
-            repulsions += [self._flip(''.join([triplet[0], triplet[2]])) for triplet in triplets]
+            # get all bonds and repulsions
+            bonds += self._bind(chemical)
+            repulsions += self._repulse(chemical)
 
         # add each bond
         bonds = list(set(bonds))
@@ -264,8 +305,199 @@ class Lithograph(Core):
             configuration['repulsions'].append({'repulsion': repulsion, 'energy': 0})
 
         # dump into yaml and format
-        destination = self.transitions.replace('.txt', '.yaml')
-        self._dispense(configuration, destination)
-        self._disperse(destination)
+        self._dispense(configuration, self.yam)
+        self._disperse(self.yam)
+
+        return None
+
+    def _populate(self):
+        """Populate with reactions.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self
+        """
+
+        # try to
+        try:
+
+            # read in the configurationn
+            yam = self._acquire(self.yam)
+
+            # unpack yam
+            species, reactions, bonds, forces = yam['species'], yam['reactions'], yam['bonds'], yam['repulsions']
+
+            # convert bonds to dictionary
+            species = {record['chemical']: record for record in species}
+            bonds = {record['bond']: record for record in bonds}
+            forces = {record['repulsion']: record for record in forces}
+
+            # update each species with its energy
+            for chemical, record in species.items():
+
+                # calculate attractions and repulsions, and update energy
+                attractions = sum([bonds[bond]['energy'] for bond in self._bind(chemical)])
+                repulsions = sum([forces[force]['energy'] for force in self._repulse(chemical)])
+                record.update({'energy': attractions + repulsions})
+
+            # for each reaction
+            for reaction in reactions:
+
+                # unpack reaction
+                electrophile, nucleophile = reaction['electrophile'], reaction['nucleophile']
+                reactant, product, leaver = reaction['reactant'], reaction['product'], reaction['leaver']
+                catalysis = reaction['catalysis']
+
+                # get bond energies of reactants
+                chemicals = (nucleophile, reactant)
+                reactants = sum([bonds[bond]['energy'] for chemical in chemicals for bond in self._bind(chemical)])
+                reactants += sum([forces[force]['energy'] for chemical in chemicals for force in self._repulse(chemical)])
+
+                # get bond energies of transition state
+                chemicals = (nucleophile, electrophile, leaver)
+                transition = sum([bonds[bond]['energy'] for chemical in chemicals for bond in self._bind(chemical)])
+                transition += sum([forces[force]['energy'] for chemical in chemicals for force in self._repulse(chemical)])
+
+                # get bond energies of products
+                chemicals = (product, leaver)
+                products = sum([bonds[bond]['energy'] for chemical in chemicals for bond in self._bind(chemical)])
+                products += sum([forces[force]['energy'] for chemical in chemicals for force in self._repulse(chemical)])
+
+                # calculate the forward and backward reection rates
+                forward = math.exp(-(catalysis + transition - reactants))
+                backward = math.exp(-(catalysis + transition - products))
+
+                # create reaction instance
+                member = Reaction(reaction, forward, backward)
+                self.append(member)
+
+            # add attributes
+            self.species = species
+            self.bonds = bonds
+            self.forces = forces
+
+            # add list of chemicals
+            chemicals = list(species.keys())
+            chemicals.sort()
+            self.chemicals = chemicals
+
+        # unless not found
+        except (KeyError, FileNotFoundError):
+
+            # print warning
+            self._print('no yams!')
+
+        return None
+
+    def _repulse(self, chemical):
+        """Create list of repulsions in a chemical.
+
+        Arguments:
+            chemical: str
+
+        Returns:
+            list of str
+        """
+
+        # get all repulsions from all elements two apart
+        triplets = zip(chemical[:-2], chemical[1:-1], chemical[2:])
+        repulsions = [self._flip(''.join([triplet[0], triplet[2]])) for triplet in triplets]
+        repulsions.sort()
+
+        return repulsions
+
+    def etch(self, number=2):
+        """Etch a glass for a number of steps.
+
+        Arguments:
+            number: int, number of time steps
+
+        Returns:
+            None
+
+        Populates:
+            self.etchingg
+            self.lattice
+        """
+
+        # specify starting point and energy
+        chemicals = self.chemicals
+        point = [float(self.species[chemical]['quantity']) for chemical in chemicals]
+        energy = self._energize(point)
+
+        # for each time step
+        for step in range(number):
+
+            # grab current composition
+            composition = {chemical: quantity for chemical, quantity in zip(chemicals, point)}
+
+            # for each reaction
+            rates = []
+            for reaction in self:
+
+                # calculate the forward and backward rates
+                forward = reaction.forward * composition[reaction.nucleophile] * composition[reaction.reactant]
+                backward = reaction.backward * composition[reaction.leaver] * composition[reaction.product]
+
+                # add to rates
+                rates.append((forward, 1, reaction))
+                rates.append((backward, -1, reaction))
+
+            # calculate the logarithm of each rate
+            logarithms = [math.log(velocity + 1) for velocity, _, _ in rates]
+            weights = [logarithm / sum(logarithms) for logarithm in logarithms]
+
+            # construct lattice points for each reaction
+            lattice = []
+            for rate, weight in zip(rates, weights):
+
+                # unpack rate
+                _, polarity, reaction = rate
+
+                # calculate transition point
+                delta = [0.0] * len(chemicals)
+                delta[chemicals.index(reaction.nucleophile)] = -0.5 * polarity
+                delta[chemicals.index(reaction.reactant)] = -0.5 * polarity
+                delta[chemicals.index(reaction.product)] = 0.5 * polarity
+                delta[chemicals.index(reaction.leaver)] = 0.5 * polarity
+
+                # calculate transition activation energy
+                transition = [entry + change for entry, change in zip(point, delta)]
+                activation = energy + math.log(reaction.forward * (polarity > 0) + reaction.backward * (polarity < 0))
+
+                # calculate final point
+                delta = [0.0] * len(chemicals)
+                delta[chemicals.index(reaction.nucleophile)] = -1.0 * polarity
+                delta[chemicals.index(reaction.reactant)] = -1.0 * polarity
+                delta[chemicals.index(reaction.product)] = 1.0 * polarity
+                delta[chemicals.index(reaction.leaver)] = 1.0 * polarity
+
+                # calculate energy of products
+                final = [entry + change for entry, change in zip(point, delta)]
+                drop = self._energize(final)
+
+                # add to lattice
+                entry = [weight, (energy, activation, drop), point, transition, final]
+                lattice.append(entry)
+
+            # pick a random reaction based on weights
+            choice = numpy.random.choice(list(range(len(rates))), p=weights)
+
+            # add choice to etching
+            etching = lattice[choice].copy()
+            etching[0] = rates[choice][2].color
+
+            # update point and energy
+            point = etching[-1]
+            energy = etching[1][-1]
+
+            # update records
+            self.etching.append(etching)
+            self.lattice += lattice
 
         return None

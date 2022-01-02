@@ -18,12 +18,35 @@ class Reaction(object):
         None
     """
 
-    def __init__(self):
+    def __init__(self, yam, forward, backward):
         """Initialize a reaction instance.
 
         Arguments:
-            None
+            yam: dict, yaml reaction entru
+            forward: float, forward rate constant
+            backward: float, backward rate constant
         """
+
+        # name the reaction from the transition for now
+        self.name = yam['transition']
+        self.transition = yam['transition']
+
+        # populate from yam
+        self.electrophile = yam['electrophile']
+        self.nucleophile = yam['nucleophile']
+        self.reactant = yam['reactant']
+        self.product = yam['product']
+        self.leaver = yam['leaver']
+
+        # add catalysis
+        self.catalysis = yam['catalysis']
+
+        # populate rate constants
+        self.forward = forward
+        self.backward = backward
+
+        # add plotting color
+        self.color = yam['color']
 
         return
 
@@ -39,8 +62,9 @@ class Reaction(object):
 
         # make a string of the reaction's route
         name = self.name
-        shape = self.shape
-        slash = self.slash.replace(self.name, '')[-100:]
-        representation = '< Reaction: {} {} {} >'.format(name, shape, slash)
+        forward = round(self.forward, 4)
+        backward = round(self.backward, 4)
+        color = self.color
+        representation = '< Reaction: {} , -> {} <- {} ({}) >'.format(name, forward, backward, color)
 
         return representation
