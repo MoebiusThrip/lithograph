@@ -7,7 +7,7 @@ def _print(*messages):
     message = ','.join([str(entry) for entry in messages])
 
     # print the message
-    print message
+    print(*messages)
 
     return None
 

@@ -2,8 +2,41 @@
 
 # import system tools
 import os
-import shutil
 import sys
+import shutil
+
+# if in python3, use instruction from wiki
+if sys.version_info.major == 3:
+
+    # define path
+    ACpath = '/tis/releases/ac/python-science/1.0.0/'
+
+    # check for centos distribution
+    import distro
+    if distro.id() == 'centos':
+
+        # and add paths
+        sys.path.append(os.path.join(ACpath,'lib/python3.6/site-packages'))
+        sys.path.append(os.path.join(ACpath,'lib64/python3.6/site-packages'))
+        print('Setting path for Python 3 on CentOS')
+
+    # otherwise if ubuntu
+    elif distro.id() == 'ubuntu':
+
+        # add paths
+        sys.path.append(os.path.join(ACpath,'lib/python3.8/site-packages'))
+        print('Setting path for Python 3 on Ubuntu')
+
+# otherwise, if python 2
+if sys.version_info.major == 2:
+
+    # define missing exceptions
+    FileExistsError = OSError
+    FileNotFoundError = IOError
+    PermissionError = OSError
+
+# print path
+print('Path is', sys.path)
 
 # import file manipulations
 import json
@@ -15,17 +48,17 @@ import time
 # import pretty print
 import pprint
 
-# check system version
-if sys.version_info[0] < 3:
-
-    # import python two functions
-    from twos import _print, FileExistsError, FileNotFoundError, PermissionError
-
-# otherwise
-else:
-
-    # import python three functions
-    from threes import _print
+# # check system version
+# if sys.version_info[0] < 3:
+#
+#     # import python two functions
+#     from twos import _print, FileExistsError, FileNotFoundError, PermissionError
+#
+# # otherwise
+# else:
+#
+#     # import python three functions
+#     from threes import _print
 
 
 # class Core
@@ -320,8 +353,11 @@ class Core(list):
             None
         """
 
+        # compact messages
+        message = ', '.join(messages)
+
         # print
-        _print(*messages)
+        print(message)
 
         return None
 
