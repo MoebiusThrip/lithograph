@@ -30,6 +30,7 @@ from sklearn.decomposition import PCA
 from matplotlib import pyplot
 from matplotlib import style as Style
 from matplotlib import rcParams
+from mpl_toolkits import mplot3d
 Style.use('fast')
 rcParams['axes.formatter.useoffset'] = False
 
@@ -512,6 +513,75 @@ class Lithograph(Core):
             # update records
             self.etching.append(etching)
             self.lattice += lattice
+
+        return None
+
+    def gaze(self):
+        """See a #D representation of the trajectory.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # create a matrix from all points in the etching
+        matrix = []
+        etching = self.etching
+        for etch in etching:
+
+            # add all points
+            matrix += etch[2:5]
+
+        # create decomposition
+        matrix = numpy.array(matrix)
+        machine = PCA(n_components=2)
+        machine.fit(matrix)
+
+        # begin plot
+        pyplot.clf()
+        figure = pyplot.figure()
+        axis = pyplot.axes(projection='3d')
+
+        # plot all lattice slats
+        for slat in self.lattice:
+
+            # get the point from the machine
+            points = machine.transform(slat[2:5])
+            energies = slat[1]
+
+            # calculate a line width for the weight
+            weight = slat[0]
+            width = (weight + 0.1) * 5
+
+            # plot the line
+            horizontals = [point[0] for point in points]
+            verticals = [point[1] for point in points]
+            axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
+
+        # plot all etchings
+        for slat in self.etching:
+
+            # get the point from the machine
+            points = machine.transform(slat[2:5])
+            energies = slat[1]
+
+            # get the color and set the width
+            color = slat[0]
+            width = 1
+
+            # plot the line
+            horizontals = [point[0] for point in points]
+            verticals = [point[1] for point in points]
+            axis.plot(horizontals, verticals, energies, color=color, marker='+', linewidth=width)
+
+        # save the plot and clear
+        axis.view_init(30, 135)
+        pyplot.savefig('gaze.png')
+        axis.view_init(30, -135)
+        pyplot.savefig('gazeii.png')
+        pyplot.clf()
 
         return None
 
