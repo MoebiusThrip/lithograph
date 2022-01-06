@@ -577,8 +577,8 @@ class Lithograph(Core):
             axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
 
             # plot a marker
-            marker = '^' if energies[2] > energies[0] else 'v'
-            axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=3)
+            marker = '2' if energies[2] > energies[0] else '1'
+            axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
         axis.view_init(30, 135)
@@ -647,8 +647,8 @@ class Lithograph(Core):
             pyplot.plot(horizontals, verticals, color=color, marker=',', linewidth=width)
 
             # plot a marker
-            marker = '^' if energies[2] > energies[0] else 'v'
-            pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=3)
+            marker = '2' if energies[2] > energies[0] else '1'
+            pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
         pyplot.savefig('peer.png')
