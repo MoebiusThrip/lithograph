@@ -353,11 +353,17 @@ class Core(list):
             None
         """
 
-        # compact messages
-        message = ', '.join(messages)
+        # construct  message
+        message = ', '.join([str(message) for message in messages])
 
         # print
         print(message)
+
+        # # go through each meassage
+        # for message in messages:
+        #
+        #     # print
+        #     print(message)
 
         return None
 
