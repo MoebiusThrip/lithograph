@@ -574,7 +574,11 @@ class Lithograph(Core):
             # plot the line
             horizontals = [point[0] for point in points]
             verticals = [point[1] for point in points]
-            axis.plot(horizontals, verticals, energies, color=color, marker='+', linewidth=width)
+            axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
+
+            # plot a marker
+            marker = '^' if energies[2] > energies[0] else 'v'
+            axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=3)
 
         # save the plot and clear
         axis.view_init(30, 135)
@@ -631,6 +635,7 @@ class Lithograph(Core):
 
             # get the point from the machine
             points = machine.transform(slat[2:5])
+            energies = slat[1]
 
             # get the color and set the width
             color = slat[0]
@@ -639,7 +644,11 @@ class Lithograph(Core):
             # plot the line
             horizontals = [point[0] for point in points]
             verticals = [point[1] for point in points]
-            pyplot.plot(horizontals, verticals, color=color, marker='+', linewidth=width)
+            pyplot.plot(horizontals, verticals, color=color, marker=',', linewidth=width)
+
+            # plot a marker
+            marker = '^' if energies[2] > energies[0] else 'v'
+            pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=3)
 
         # save the plot and clear
         pyplot.savefig('peer.png')
