@@ -404,7 +404,11 @@ class Lithograph(Core):
         except (KeyError, FileNotFoundError):
 
             # print warning
-            self._print('no yams!')
+            self._print('no yams!, generating...')
+
+            # generate from text
+            text = self.yam.replace('yaml', 'txt')
+            self._generate(text)
 
         return None
 
