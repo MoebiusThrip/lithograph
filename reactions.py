@@ -65,6 +65,7 @@ class Reaction(object):
         forward = round(self.forward, 4)
         backward = round(self.backward, 4)
         color = self.color
-        representation = '< Reaction: {} , -> {} <- {} ({}) >'.format(name, forward, backward, color)
+        equation = '{} + {} = {} + {}'.format(self.nucleophile, self.reactant, self.product, self.leaver)
+        representation = '< Reaction: {} [{}] -> {} <- {} ({}) >'.format(equation, name, forward, backward, color)
 
         return representation

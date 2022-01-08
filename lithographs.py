@@ -66,6 +66,7 @@ class Lithograph(Core):
         # begin the lattice and the etching
         self.lattice = []
         self.etching = []
+        self.history = []
 
         return
 
@@ -459,26 +460,28 @@ class Lithograph(Core):
 
             # for each reaction
             rates = []
-            for reaction in self:
+            for index, reaction in enumerate(self):
 
                 # calculate the forward and backward rates
                 forward = reaction.forward * composition[reaction.nucleophile] * composition[reaction.reactant]
                 backward = reaction.backward * composition[reaction.leaver] * composition[reaction.product]
 
                 # add to rates
-                rates.append((forward, 1, reaction))
-                rates.append((backward, -1, reaction))
+                rates.append((forward, 1, reaction, index))
+                rates.append((backward, -1, reaction, index))
 
             # calculate the logarithm of each rate
-            logarithms = [math.log(velocity + 1) for velocity, _, _ in rates]
+            logarithms = [math.log(velocity + 1) for velocity, _, _, _ in rates]
             weights = [logarithm / sum(logarithms) for logarithm in logarithms]
+            # velocities = [velocity for velocity, _, _, _ in rates]
+            # weights = [velocity / sum(velocities) for velocity in velocities]
 
             # construct lattice points for each reaction
             lattice = []
             for rate, weight in zip(rates, weights):
 
                 # unpack rate
-                _, polarity, reaction = rate
+                _, polarity, reaction, _ = rate
 
                 # calculate transition point
                 delta = [0.0] * len(chemicals)
@@ -520,14 +523,15 @@ class Lithograph(Core):
             # update records
             self.etching.append(etching)
             self.lattice += lattice
+            self.history.append(choice)
 
         return None
 
-    def gaze(self):
+    def gaze(self, grid=False):
         """See a #D representation of the trajectory.
 
         Arguments:
-            None
+            grid: boolean, plot grid?
 
         Returns:
             None
@@ -554,21 +558,24 @@ class Lithograph(Core):
         figure = pyplot.figure()
         axis = pyplot.axes(projection='3d')
 
-        # plot all lattice slats
-        for slat in self.lattice:
+        # if grid
+        if grid:
 
-            # get the point from the machine
-            points = machine.transform(slat[2:5])
-            energies = slat[1]
+            # plot all lattice slats
+            for slat in self.lattice:
 
-            # calculate a line width for the weight
-            weight = slat[0]
-            width = (weight + 0.1) * 5
+                # get the point from the machine
+                points = machine.transform(slat[2:5])
+                energies = slat[1]
 
-            # plot the line
-            horizontals = [point[0] for point in points]
-            verticals = [point[1] for point in points]
-            axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
+                # calculate a line width for the weight
+                weight = slat[0]
+                width = (weight + 0.1) * 5
+
+                # plot the line
+                horizontals = [point[0] for point in points]
+                verticals = [point[1] for point in points]
+                axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
 
         # plot all etchings
         for slat in self.etching:
@@ -588,7 +595,7 @@ class Lithograph(Core):
 
             # plot a marker
             marker = '2' if energies[2] > energies[0] else '1'
-            axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
+            #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
         axis.view_init(30, 135)
@@ -599,11 +606,11 @@ class Lithograph(Core):
 
         return None
 
-    def peer(self):
+    def peer(self, grid=False):
         """See a flat representation of the trajectory.
 
         Arguments:
-            None
+            grid: boolean, plot grid?
 
         Returns:
             None
@@ -628,20 +635,23 @@ class Lithograph(Core):
         # begin plot
         pyplot.clf()
 
-        # plot all lattice slats
-        for slat in self.lattice:
+        # if grid
+        if grid:
 
-            # get the point from the machine
-            points = machine.transform(slat[2:5])
+            # plot all lattice slats
+            for slat in self.lattice:
 
-            # calculate a line width for the weight
-            weight = slat[0]
-            width = (weight + 0.1) * 5
+                # get the point from the machine
+                points = machine.transform(slat[2:5])
 
-            # plot the line
-            horizontals = [point[0] for point in points]
-            verticals = [point[1] for point in points]
-            pyplot.plot(horizontals, verticals, color='gray', marker=',', linewidth=width)
+                # calculate a line width for the weight
+                weight = slat[0]
+                width = (weight + 0.1) * 5
+
+                # plot the line
+                horizontals = [point[0] for point in points]
+                verticals = [point[1] for point in points]
+                pyplot.plot(horizontals, verticals, color='gray', marker=',', linewidth=width)
 
         # plot all etchings
         for slat in self.etching:
@@ -661,7 +671,7 @@ class Lithograph(Core):
 
             # plot a marker
             marker = '2' if energies[2] > energies[0] else '1'
-            pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=5)
+            #pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
         pyplot.savefig('peer.png')
@@ -735,10 +745,56 @@ class Lithograph(Core):
             color = self.species[chemical]['color']
 
             # plot
-            pyplot.plot(time, chemistry, color=color, marker=',')
+            #pyplot.plot(time, chemistry, color=color, marker=',')
+            pyplot.plot(time, vector, color=color, marker=',')
 
         # save plot
         pyplot.savefig('quantify.png')
+        pyplot.clf()
+
+        return None
+
+    def recite(self):
+        """Recite the reaction counts.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # print
+        self._print('reciting...')
+
+        # grab history
+        history = self.history
+
+        # begin series
+        series = [[0 for reaction in self]]
+        for entry in history:
+
+            # add to index
+            vector = series[-1][:]
+            vector[(int(entry / 2))] += 1
+            series.append(vector)
+
+        # begin plot
+        pyplot.clf()
+
+        # plot each series
+        for index, reaction in enumerate(self):
+
+            # create vector
+            chemistry = [entry[index] for entry in series]
+            time = [number for number, _ in enumerate(series)]
+            color = self[index].color
+
+            # plot
+            pyplot.plot(time, chemistry, color=color, marker=',')
+
+        # save plot
+        pyplot.savefig('recite.png')
         pyplot.clf()
 
         return None
@@ -761,5 +817,6 @@ class Lithograph(Core):
         self.peer()
         self.quantify()
         self.qualify()
+        self.recite()
 
         return None
