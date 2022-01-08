@@ -296,7 +296,7 @@ class Lithograph(Core):
         for chemical in species:
 
             # make entry
-            configuration['species'].append({'chemical': chemical, 'quantity': 0})
+            configuration['species'].append({'chemical': chemical, 'quantity': 0, 'color': 'black'})
 
             # get all bonds and repulsions
             bonds += self._bind(chemical)
@@ -443,6 +443,9 @@ class Lithograph(Core):
             self.lattice
         """
 
+        # print
+        self._print('etching...')
+
         # specify starting point and energy
         chemicals = self.chemicals
         point = [float(self.species[chemical]['quantity']) for chemical in chemicals]
@@ -530,6 +533,9 @@ class Lithograph(Core):
             None
         """
 
+        # print
+        self._print('gazing...')
+
         # create a matrix from all points in the etching
         matrix = []
         etching = self.etching
@@ -603,6 +609,9 @@ class Lithograph(Core):
             None
         """
 
+        # print
+        self._print('peering...')
+
         # create a matrix from all points in the etching
         matrix = []
         etching = self.etching
@@ -657,5 +666,100 @@ class Lithograph(Core):
         # save the plot and clear
         pyplot.savefig('peer.png')
         pyplot.clf()
+
+        return None
+
+    def qualify(self):
+        """Create a plot of energy with time point.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # print
+        self._print('qualifying...')
+
+        # grab etching
+        etching = self.etching
+
+        # create time series
+        series = [etch[1][0] for etch in etching] + [etching[-1][1][-1]]
+
+        # begin plot
+        pyplot.clf()
+
+        # create vector
+        time = [number for number, _ in enumerate(series)]
+
+        # plot
+        pyplot.plot(time, series, color='black', marker=',')
+
+        # save plot
+        pyplot.savefig('qualify.png')
+        pyplot.clf()
+
+        return None
+
+    def quantify(self):
+        """Create a plot of all species with time point.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # print
+        self._print('quantifying...')
+
+        # grab etching
+        etching = self.etching
+
+        # create time series
+        series = [etch[2] for etch in etching] + [etching[-1][4]]
+
+        # begin plot
+        pyplot.clf()
+
+        # plot each series
+        for index, chemical in enumerate(self.chemicals):
+
+            # create vector
+            chemistry = [entry[index] for entry in series]
+            vector = [math.log(entry + 1) for entry in chemistry]
+            time = [number for number, _ in enumerate(series)]
+            color = self.species[chemical]['color']
+
+            # plot
+            pyplot.plot(time, chemistry, color=color, marker=',')
+
+        # save plot
+        pyplot.savefig('quantify.png')
+        pyplot.clf()
+
+        return None
+
+    def study(self, number=100):
+        """Perform an etch and graph results.
+
+        Arguments:
+            number: int, number of time steps
+
+        Returns:
+            None
+        """
+
+        # etch
+        self.etch(number)
+
+        # draw graphs
+        self.gaze()
+        self.peer()
+        self.quantify()
+        self.qualify()
 
         return None
