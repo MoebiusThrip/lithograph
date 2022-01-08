@@ -18,7 +18,7 @@ class Reaction(object):
         None
     """
 
-    def __init__(self, yam, forward, backward):
+    def __init__(self, yam, forward, backward, energies):
         """Initialize a reaction instance.
 
         Arguments:
@@ -40,6 +40,9 @@ class Reaction(object):
 
         # add catalysis
         self.catalysis = yam['catalysis']
+
+        # set energies
+        self.energies = energies
 
         # populate rate constants
         self.forward = forward
@@ -65,7 +68,9 @@ class Reaction(object):
         forward = round(self.forward, 4)
         backward = round(self.backward, 4)
         color = self.color
+        energies = self.energies
         equation = '{} + {} = {} + {}'.format(self.nucleophile, self.reactant, self.product, self.leaver)
-        representation = '< Reaction: {} [{}] -> {} <- {} ({}) >'.format(equation, name, forward, backward, color)
+        formats = (equation, name, forward, backward, energies, color)
+        representation = '< Reaction: {} [{}] -> {} <- {} {} ({}) >'.format(*formats)
 
         return representation

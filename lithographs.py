@@ -388,7 +388,8 @@ class Lithograph(Core):
                 backward = math.exp(-(catalysis + transition - products))
 
                 # create reaction instance
-                member = Reaction(reaction, forward, backward)
+                energies = (reactants, transition + catalysis, products)
+                member = Reaction(reaction, forward, backward, energies)
                 self.append(member)
 
             # add attributes
