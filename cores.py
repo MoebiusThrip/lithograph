@@ -41,24 +41,13 @@ print('Path is', sys.path)
 # import file manipulations
 import json
 import csv
+import yaml
 
 # import time
 import time
 
 # import pretty print
 import pprint
-
-# # check system version
-# if sys.version_info[0] < 3:
-#
-#     # import python two functions
-#     from twos import _print, FileExistsError, FileNotFoundError, PermissionError
-#
-# # otherwise
-# else:
-#
-#     # import python three functions
-#     from threes import _print
 
 
 # class Core
@@ -95,6 +84,24 @@ class Core(list):
         representation = ' < Core instance >'
 
         return representation
+
+    def _acquire(self, path):
+        """Load in a yaml file.
+
+        Arguments:
+            path: str, filepath
+
+        Returns:
+            dict
+
+        """
+        # open yaml file
+        with open(path, 'r') as pointer:
+
+            # and read contents
+            information = yaml.safe_load(pointer)
+
+        return information
 
     def _clean(self, directory):
         """Delete all files in a directory and the directory itself.
@@ -143,6 +150,71 @@ class Core(list):
 
             # in which case, alert and skip
             self._print('{} is a directory'.format(path))
+
+        return None
+
+    def _dispense(self, information, destination):
+        """Load in a yaml file.
+
+        Arguments:
+            information: dict
+            destination: str, filepath
+
+        Returns:
+            None
+        """
+
+        # open yaml file
+        with open(destination, 'w') as pointer:
+
+            # try to
+            try:
+
+                # dump contents, sorted
+                yaml.dump(information, pointer, sort_keys=False)
+
+            # unless not an option (python 2)
+            except TypeError:
+
+                # just dump unsorted
+                yaml.dump(information, pointer)
+
+        return None
+
+    def _disperse(self, name):
+        """Add spacing to yaml files.
+
+        Arguments:
+            name: file name
+
+        Returns:
+            None
+        """
+
+        # improve spacing
+        transcription = self._know(name)
+        lines = []
+        for line in transcription:
+
+            # if it begins with a -
+            tab = '    '
+            if line.strip().startswith('-'):
+
+                # add extra line
+                lines.append('')
+
+            # if it doesn't start with a space
+            if len(line) > 0 and line[0].isalpha():
+
+                # add extra line
+                lines.append('')
+                tab = ''
+
+            # add line, swapping double quotes for sinlges
+            lines.append(tab + line.replace("'", '').replace('"', "'"))
+
+        # record as text file
+        self._jot(lines, name)
 
         return None
 
