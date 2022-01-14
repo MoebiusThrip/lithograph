@@ -415,6 +415,46 @@ class Core(list):
 
         return None
 
+    def _move(self, path, folder):
+        """Move a file from one location or name to another.
+
+        Arguments:
+            path: str, filepath
+            folder: name of new folder
+
+        Returns:
+            None
+        """
+
+        # construct new name
+        new = '{}/{}'.format(folder, path.split('/')[-1])
+
+        # move file
+        destination = shutil.move(path, new)
+        self._print('moved {}\nto {}\n'.format(path, destination))
+
+        return None
+
+    def _name(self, path, name):
+        """Move a file from one location or name to another.
+
+        Arguments:
+            path: str, filepath
+            name: str, new name
+
+        Returns:
+            None
+        """
+
+        # construct new name
+        new = '/'.join(path.split('/')[:-1] + [name])
+
+        # move file
+        destination = shutil.move(path, new)
+        self._print('renamed {}\nto {}\n'.format(path, destination))
+
+        return None
+
     def _print(self, *messages):
         """Print the message, localizes print statements.
 
