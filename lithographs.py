@@ -516,18 +516,14 @@ class Lithograph(Core):
                 lattice.append(scratch)
 
             # pick a random reaction based on weights
-            choice = numpy.random.choice(list(range(len(rates))), p=weights)
+            etching = numpy.random.choice(lattice, p=weights)
 
-            # # add choice to etching
-            # etching = lattice[choice].copy()
-            # etching[0] = rates[choice][2].color
-            #
-            # # update point and energy
-            # point = etching[-1]
-            # energy = etching[1][-1]
+            # update point and energy
+            point = etching.trajectory[-1]
+            energy = etching.energies[-1]
 
             # update records
-            #self.etching.append(etching)
+            self.etching.append(etching)
             self.lattice += lattice
             #self.history.append(choice)
 
