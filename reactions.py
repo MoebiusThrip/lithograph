@@ -1,14 +1,5 @@
 # reactions.py to represent chemical reactions
 
-# import numpy
-import numpy
-
-# import pprint for pretty printing
-import pprint
-
-# import h5py to read h5 files
-import h5py
-
 
 # class Reaction to represent data reactions
 class Reaction(object):

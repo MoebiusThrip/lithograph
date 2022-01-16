@@ -3,6 +3,7 @@
 # import cores
 from cores import Core
 from reactions import Reaction
+from scratches import Scratch
 
 # import general tools
 import sys
@@ -506,25 +507,29 @@ class Lithograph(Core):
                 final = [entry + change for entry, change in zip(point, delta)]
                 drop = self._energize(final)
 
+                # create scratch
+                energies = (energy, activation, drop)
+                trajectory = (point, transition, final)
+                scratch = Scratch(trajectory, energies, weight, reaction, rate[0], polarity)
+
                 # add to lattice
-                entry = [weight, (energy, activation, drop), point, transition, final]
-                lattice.append(entry)
+                lattice.append(scratch)
 
             # pick a random reaction based on weights
             choice = numpy.random.choice(list(range(len(rates))), p=weights)
 
-            # add choice to etching
-            etching = lattice[choice].copy()
-            etching[0] = rates[choice][2].color
-
-            # update point and energy
-            point = etching[-1]
-            energy = etching[1][-1]
+            # # add choice to etching
+            # etching = lattice[choice].copy()
+            # etching[0] = rates[choice][2].color
+            #
+            # # update point and energy
+            # point = etching[-1]
+            # energy = etching[1][-1]
 
             # update records
-            self.etching.append(etching)
+            #self.etching.append(etching)
             self.lattice += lattice
-            self.history.append(choice)
+            #self.history.append(choice)
 
         return None
 
@@ -533,85 +538,6 @@ class Lithograph(Core):
 
         Arguments:
             grid: boolean, plot grid?
-
-        Returns:
-            None
-        """
-
-        # print
-        self._print('gazing...')
-
-        # create a matrix from all points in the etching
-        matrix = []
-        etching = self.etching
-        for etch in etching:
-
-            # add all points
-            matrix += etch[2:5]
-
-        # create decomposition
-        matrix = numpy.array(matrix)
-        machine = PCA(n_components=2)
-        machine.fit(matrix)
-
-        # begin plot
-        pyplot.clf()
-        figure = pyplot.figure()
-        axis = pyplot.axes(projection='3d')
-
-        # if grid
-        if grid:
-
-            # plot all lattice slats
-            for slat in self.lattice:
-
-                # get the point from the machine
-                points = machine.transform(slat[2:5])
-                energies = slat[1]
-
-                # calculate a line width for the weight
-                weight = slat[0]
-                width = (weight + 0.1) * 5
-
-                # plot the line
-                horizontals = [point[0] for point in points]
-                verticals = [point[1] for point in points]
-                axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
-
-        # plot all etchings
-        for slat in self.etching:
-
-            # get the point from the machine
-            points = machine.transform(slat[2:5])
-            energies = slat[1]
-
-            # get the color and set the width
-            color = slat[0]
-            width = 1
-
-            # plot the line
-            horizontals = [point[0] for point in points]
-            verticals = [point[1] for point in points]
-            axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
-
-            # plot a marker
-            marker = '2' if energies[2] > energies[0] else '1'
-            #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
-
-        # save the plot and clear
-        axis.view_init(30, 135)
-        pyplot.savefig('gaze.png')
-        axis.view_init(30, -135)
-        pyplot.savefig('gazeii.png')
-        pyplot.clf()
-
-        return None
-
-    def loupe(self, point):
-        """See a 3D representation one point in the trajectory.
-
-        Arguments:
-            point: index of lattice point
 
         Returns:
             None
@@ -755,6 +681,85 @@ class Lithograph(Core):
 
         # save the plot and clear
         pyplot.savefig('peer.png')
+        pyplot.clf()
+
+        return None
+
+    def place(self, point):
+        """See a 3D representation of one point in the trajectory.
+
+        Arguments:
+            point: index of lattice point
+
+        Returns:
+            None
+        """
+
+        # print
+        self._print('gazing...')
+
+        # create a matrix from all points in the etching
+        matrix = []
+        etching = self.etching
+        for etch in etching:
+
+            # add all points
+            matrix += etch[2:5]
+
+        # create decomposition
+        matrix = numpy.array(matrix)
+        machine = PCA(n_components=2)
+        machine.fit(matrix)
+
+        # begin plot
+        pyplot.clf()
+        figure = pyplot.figure()
+        axis = pyplot.axes(projection='3d')
+
+        # if grid
+        if grid:
+
+            # plot all lattice slats
+            for slat in self.lattice:
+
+                # get the point from the machine
+                points = machine.transform(slat[2:5])
+                energies = slat[1]
+
+                # calculate a line width for the weight
+                weight = slat[0]
+                width = (weight + 0.1) * 5
+
+                # plot the line
+                horizontals = [point[0] for point in points]
+                verticals = [point[1] for point in points]
+                axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
+
+        # plot all etchings
+        for slat in self.etching:
+
+            # get the point from the machine
+            points = machine.transform(slat[2:5])
+            energies = slat[1]
+
+            # get the color and set the width
+            color = slat[0]
+            width = 1
+
+            # plot the line
+            horizontals = [point[0] for point in points]
+            verticals = [point[1] for point in points]
+            axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
+
+            # plot a marker
+            marker = '2' if energies[2] > energies[0] else '1'
+            #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
+
+        # save the plot and clear
+        axis.view_init(30, 135)
+        pyplot.savefig('place.png')
+        axis.view_init(30, -135)
+        pyplot.savefig('placeii.png')
         pyplot.clf()
 
         return None
