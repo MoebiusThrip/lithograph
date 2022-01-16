@@ -435,7 +435,7 @@ class Core(list):
 
         return None
 
-    def _name(self, path, name):
+    def _name(self, path, name, replacement=None):
         """Move a file from one location or name to another.
 
         Arguments:
@@ -446,8 +446,12 @@ class Core(list):
             None
         """
 
+        # extract old name and set replacement
+        old = path.split('/')[-1]
+        replacement = replacement or old
+
         # construct new name
-        new = '/'.join(path.split('/')[:-1] + [name])
+        new = path.replace(replacement, name)
 
         # move file
         destination = shutil.move(path, new)
