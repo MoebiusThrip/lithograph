@@ -30,6 +30,9 @@ class Scratch(object):
         self.rate = rate
         self.polarity = polarity
 
+        # link to reaction's color
+        self.color = reaction.color
+
         return
 
     def __repr__(self):
@@ -42,8 +45,9 @@ class Scratch(object):
             str
         """
 
-        # make a string of the reaction's route
-        formats = (self.energies, self.reaction.transition, self.rate, *self.trajectory)
-        representation = '< Scratch: {} [{}], ({}), {} -> {} -> {} >'.format(*formats)
+        # make a string of the sratches attributes
+        formats = [round(self.weight, 2), self.color, self.energies, self.reaction.transition]
+        formats += ['-' if self.polarity < 1 else '+', round(self.rate, 2), self.trajectory[0], self.trajectory[2]]
+        representation = '< Scratch: {} {} {} [{}], {}({}), {} -> {} >'.format(*formats)
 
         return representation
