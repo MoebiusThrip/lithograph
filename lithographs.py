@@ -452,80 +452,23 @@ class Lithograph(Core):
         # specify starting point and energy
         chemicals = self.chemicals
         point = [float(self.species[chemical]['quantity']) for chemical in chemicals]
-        energy = self._energize(point)
 
         # for each time step
         for step in range(number):
 
-            # grab current composition
-            composition = {chemical: quantity for chemical, quantity in zip(chemicals, point)}
-
-            # for each reaction
-            rates = []
-            for index, reaction in enumerate(self):
-
-                # calculate the forward and backward rates
-                forward = reaction.forward * composition[reaction.nucleophile] * composition[reaction.reactant]
-                backward = reaction.backward * composition[reaction.leaver] * composition[reaction.product]
-
-                # add to rates
-                rates.append((forward, 1, reaction, index))
-                rates.append((backward, -1, reaction, index))
-
-            # calculate the logarithm of each rate
-            logarithms = [math.log(velocity + 1) for velocity, _, _, _ in rates]
-            weights = [logarithm / sum(logarithms) for logarithm in logarithms]
-            # velocities = [velocity for velocity, _, _, _ in rates]
-            # weights = [velocity / sum(velocities) for velocity in velocities]
-
-            # construct lattice points for each reaction
-            lattice = []
-            for rate, weight in zip(rates, weights):
-
-                # unpack rate
-                _, polarity, reaction, _ = rate
-
-                # calculate transition point
-                delta = [0.0] * len(chemicals)
-                delta[chemicals.index(reaction.nucleophile)] = -0.5 * polarity
-                delta[chemicals.index(reaction.reactant)] = -0.5 * polarity
-                delta[chemicals.index(reaction.product)] = 0.5 * polarity
-                delta[chemicals.index(reaction.leaver)] = 0.5 * polarity
-
-                # calculate transition activation energy
-                transition = [entry + change for entry, change in zip(point, delta)]
-                activation = energy - math.log(reaction.forward * (polarity > 0) + reaction.backward * (polarity < 0))
-
-                # calculate final point
-                delta = [0.0] * len(chemicals)
-                delta[chemicals.index(reaction.nucleophile)] = -1.0 * polarity
-                delta[chemicals.index(reaction.reactant)] = -1.0 * polarity
-                delta[chemicals.index(reaction.product)] = 1.0 * polarity
-                delta[chemicals.index(reaction.leaver)] = 1.0 * polarity
-
-                # calculate energy of products
-                final = [entry + change for entry, change in zip(point, delta)]
-                drop = self._energize(final)
-
-                # create scratch
-                energies = (energy, activation, drop)
-                trajectory = (point, transition, final)
-                scratch = Scratch(trajectory, energies, weight, reaction, rate[0], polarity)
-
-                # add to lattice
-                lattice.append(scratch)
+            # make lattice
+            lattice = self.lace(point)
 
             # pick a random reaction based on weights
+            weights = [slat.weight for slat in lattice]
             etching = numpy.random.choice(lattice, p=weights)
 
             # update point and energy
             point = etching.trajectory[-1]
-            energy = etching.energies[-1]
 
             # update records
             self.etching.append(etching)
             self.lattice += lattice
-            #self.history.append(choice)
 
         return None
 
@@ -544,11 +487,10 @@ class Lithograph(Core):
 
         # create a matrix from all points in the etching
         matrix = []
-        etching = self.etching
-        for etch in etching:
+        for scratch in self.etching:
 
             # add all points
-            matrix += etch[2:5]
+            matrix += scratch.trajectory
 
         # create decomposition
         matrix = numpy.array(matrix)
@@ -567,11 +509,11 @@ class Lithograph(Core):
             for slat in self.lattice:
 
                 # get the point from the machine
-                points = machine.transform(slat[2:5])
-                energies = slat[1]
+                points = machine.transform(slat.trajectory)
+                energies = slat.energies
 
                 # calculate a line width for the weight
-                weight = slat[0]
+                weight = slat.weight
                 width = (weight + 0.1) * 5
 
                 # plot the line
@@ -580,14 +522,14 @@ class Lithograph(Core):
                 axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
 
         # plot all etchings
-        for slat in self.etching:
+        for scratch in self.etching:
 
             # get the point from the machine
-            points = machine.transform(slat[2:5])
-            energies = slat[1]
+            points = machine.transform(scratch.trajectory)
+            energies = scratch.energies
 
             # get the color and set the width
-            color = slat[0]
+            color = scratch.color
             width = 1
 
             # plot the line
@@ -605,6 +547,157 @@ class Lithograph(Core):
         axis.view_init(30, -135)
         pyplot.savefig('gazeii.png')
         pyplot.clf()
+
+        return None
+
+    def lace(self, point):
+        """Construct the lattice based on a composition.
+
+        Arguments:
+             point: composition vector
+
+        Returns:
+            list of Scratch instances
+        """
+
+        # grab chemicals
+        chemicals = self.chemicals
+
+        # construction composition and energy
+        energy = self._energize(point)
+        composition = {chemical: quantity for chemical, quantity in zip(chemicals, point)}
+
+        # for each reaction
+        rates = []
+        for index, reaction in enumerate(self):
+
+            # calculate the forward and backward rates
+            forward = reaction.forward * composition[reaction.nucleophile] * composition[reaction.reactant]
+            backward = reaction.backward * composition[reaction.leaver] * composition[reaction.product]
+
+            # add to rates
+            rates.append((forward, 1, reaction, index))
+            rates.append((backward, -1, reaction, index))
+
+        # calculate the logarithm of each rate
+        logarithms = [math.log(velocity + 1) for velocity, _, _, _ in rates]
+        weights = [logarithm / sum(logarithms) for logarithm in logarithms]
+        # velocities = [velocity for velocity, _, _, _ in rates]
+        # weights = [velocity / sum(velocities) for velocity in velocities]
+
+        # construct lattice points for each reaction
+        lattice = []
+        for rate, weight in zip(rates, weights):
+
+            # unpack rate
+            _, polarity, reaction, _ = rate
+
+            # calculate transition point
+            delta = [0.0] * len(chemicals)
+            delta[chemicals.index(reaction.nucleophile)] = -0.5 * polarity
+            delta[chemicals.index(reaction.reactant)] = -0.5 * polarity
+            delta[chemicals.index(reaction.product)] = 0.5 * polarity
+            delta[chemicals.index(reaction.leaver)] = 0.5 * polarity
+
+            # calculate transition activation energy
+            transition = [entry + change for entry, change in zip(point, delta)]
+            activation = energy - math.log(reaction.forward * (polarity > 0) + reaction.backward * (polarity < 0))
+
+            # calculate final point
+            delta = [0.0] * len(chemicals)
+            delta[chemicals.index(reaction.nucleophile)] = -1.0 * polarity
+            delta[chemicals.index(reaction.reactant)] = -1.0 * polarity
+            delta[chemicals.index(reaction.product)] = 1.0 * polarity
+            delta[chemicals.index(reaction.leaver)] = 1.0 * polarity
+
+            # calculate energy of products
+            final = [entry + change for entry, change in zip(point, delta)]
+            drop = self._energize(final)
+
+            # create scratch
+            energies = (energy, activation, drop)
+            trajectory = (point, transition, final)
+            scratch = Scratch(trajectory, energies, weight, reaction, rate[0], polarity)
+
+            # add to lattice
+            lattice.append(scratch)
+
+        return lattice
+
+    def flow(self):
+        """See a 3D representation of one point in the trajectory.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # print
+        self._print('flowing...')
+
+        # specify starting point
+        chemicals = self.chemicals
+        point = [float(self.species[chemical]['quantity']) for chemical in chemicals]
+
+        # grab the lattice at the point
+        lattice = self.lace(point)
+
+        # create a matrix from all points in the etching
+        matrix = []
+        for slat in lattice:
+
+            # add all points
+            matrix += slat.trajectory
+
+        # create decomposition machine
+        matrix = numpy.array(matrix)
+        machine = PCA(n_components=2)
+        machine.fit(matrix)
+
+        # set default input to true
+        propagate = True
+        while propagate:
+
+            # begin plot
+            pyplot.clf()
+            axis = pyplot.axes(projection='3d')
+
+            # plot all lattice slats
+            for slat in lattice:
+
+                # get the point from the machine
+                points = machine.transform(slat.trajectory)
+                energies = slat.energies
+
+                # calculate a line width for the weight
+                weight = slat.weight
+                width = (weight + 0.1) * 5
+                color = slat.color
+
+                # plot the line
+                horizontals = [point[0] for point in points]
+                verticals = [point[1] for point in points]
+                axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
+
+            # save the plot and clear
+            axis.view_init(30, 125)
+            pyplot.savefig('flow.png')
+            axis.view_init(30, -125)
+            pyplot.savefig('flowii.png')
+            pyplot.clf()
+
+            # await input
+            propagate = not input('>>>? ')
+
+            # sort lattice by weight
+            lattice.sort(key=lambda slat: slat.weight, reverse=True)
+            self._print(lattice[0])
+
+            # set new point and lattice
+            point = lattice[0].trajectory[-1]
+            lattice = self.lace(point)
 
         return None
 
@@ -692,15 +785,17 @@ class Lithograph(Core):
         """
 
         # print
-        self._print('gazing...')
+        self._print('placing...')
+
+        # grab the lattice at the point
+        lattice = self.lace(point)
 
         # create a matrix from all points in the etching
         matrix = []
-        etching = self.etching
-        for etch in etching:
+        for slat in lattice:
 
             # add all points
-            matrix += etch[2:5]
+            matrix += slat.trajectory
 
         # create decomposition
         matrix = numpy.array(matrix)
@@ -709,52 +804,29 @@ class Lithograph(Core):
 
         # begin plot
         pyplot.clf()
-        figure = pyplot.figure()
         axis = pyplot.axes(projection='3d')
 
-        # if grid
-        if grid:
-
-            # plot all lattice slats
-            for slat in self.lattice:
-
-                # get the point from the machine
-                points = machine.transform(slat[2:5])
-                energies = slat[1]
-
-                # calculate a line width for the weight
-                weight = slat[0]
-                width = (weight + 0.1) * 5
-
-                # plot the line
-                horizontals = [point[0] for point in points]
-                verticals = [point[1] for point in points]
-                axis.plot(horizontals, verticals, energies, color='gray', marker=',', linewidth=width)
-
-        # plot all etchings
-        for slat in self.etching:
+        # plot all lattice slats
+        for slat in lattice:
 
             # get the point from the machine
-            points = machine.transform(slat[2:5])
-            energies = slat[1]
+            points = machine.transform(slat.trajectory)
+            energies = slat.energies
 
-            # get the color and set the width
-            color = slat[0]
-            width = 1
+            # calculate a line width for the weight
+            weight = slat.weight
+            width = (weight + 0.1) * 5
+            color = slat.color
 
             # plot the line
             horizontals = [point[0] for point in points]
             verticals = [point[1] for point in points]
             axis.plot(horizontals, verticals, energies, color=color, marker=',', linewidth=width)
 
-            # plot a marker
-            marker = '2' if energies[2] > energies[0] else '1'
-            #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
-
         # save the plot and clear
-        axis.view_init(30, 135)
+        axis.view_init(30, 125)
         pyplot.savefig('place.png')
-        axis.view_init(30, -135)
+        axis.view_init(30, -125)
         pyplot.savefig('placeii.png')
         pyplot.clf()
 

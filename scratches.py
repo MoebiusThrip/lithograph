@@ -45,9 +45,18 @@ class Scratch(object):
             str
         """
 
+        # format attributes
+        polarity = '-' if self.polarity < 1 else '+'
+        weight = round(self.weight, 2)
+        color = self.color
+        energies = self.energies
+        transition = self.reaction.transition
+        rate = round(self.rate, 2)
+        start = self.trajectory[0]
+        finish = self.trajectory[-1]
+
         # make a string of the sratches attributes
-        formats = [round(self.weight, 2), self.color, self.energies, self.reaction.transition]
-        formats += ['-' if self.polarity < 1 else '+', round(self.rate, 2), self.trajectory[0], self.trajectory[2]]
-        representation = '< Scratch: {} {} {} [{}], {}({}), {} -> {} >'.format(*formats)
+        formats = (polarity, color, weight, transition, energies, rate, start, finish)
+        representation = '< Scratch: {} {} ({}) [{}] {} ({}) {} -> {} >'.format(*formats)
 
         return representation
