@@ -463,6 +463,10 @@ class Lithograph(Core):
             weights = [slat.weight for slat in lattice]
             etching = numpy.random.choice(lattice, p=weights)
 
+            # pick next point  based on highest weight
+            lattice.sort(key=lambda slat: slat.weight, reverse=True)
+            etching = lattice[0]
+
             # update point and energy
             point = etching.trajectory[-1]
 
@@ -542,9 +546,9 @@ class Lithograph(Core):
             #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
-        axis.view_init(30, 135)
+        axis.view_init(30, 125)
         pyplot.savefig('gaze.png')
-        axis.view_init(30, -135)
+        axis.view_init(30, -125)
         pyplot.savefig('gazeii.png')
         pyplot.clf()
 
@@ -720,7 +724,7 @@ class Lithograph(Core):
         for etch in etching:
 
             # add all points
-            matrix += etch[2:5]
+            matrix += etch.trajectory
 
         # create decomposition
         matrix = numpy.array(matrix)
@@ -737,10 +741,10 @@ class Lithograph(Core):
             for slat in self.lattice:
 
                 # get the point from the machine
-                points = machine.transform(slat[2:5])
+                points = machine.transform(slat.trajectory)
 
                 # calculate a line width for the weight
-                weight = slat[0]
+                weight = slat.weight
                 width = (weight + 0.1) * 5
 
                 # plot the line
@@ -752,11 +756,11 @@ class Lithograph(Core):
         for slat in self.etching:
 
             # get the point from the machine
-            points = machine.transform(slat[2:5])
-            energies = slat[1]
+            points = machine.transform(slat.trajectory)
+            energies = slat.energies
 
             # get the color and set the width
-            color = slat[0]
+            color = slat.color
             width = 1
 
             # plot the line
