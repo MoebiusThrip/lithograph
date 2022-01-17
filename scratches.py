@@ -52,8 +52,8 @@ class Scratch(object):
         energies = self.energies
         transition = self.reaction.transition
         rate = round(self.rate, 2)
-        start = self.trajectory[0]
-        finish = self.trajectory[-1]
+        start = [int(entry) for entry in self.trajectory[0]]
+        finish = [int(entry) for entry in self.trajectory[-1]]
 
         # make a string of the sratches attributes
         formats = (polarity, color, weight, transition, energies, rate, start, finish)
