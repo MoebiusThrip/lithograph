@@ -95,11 +95,24 @@ class Core(list):
             dict
 
         """
-        # open yaml file
-        with open(path, 'r') as pointer:
 
-            # and read contents
-            information = yaml.safe_load(pointer)
+        # default information to empty
+        information = {}
+
+        # try to
+        try:
+
+            # open yaml file
+            with open(path, 'r') as pointer:
+
+                # and read contents
+                information = yaml.safe_load(pointer)
+
+        # unless not found
+        except FileNotFoundError:
+
+            # in which case print error
+            self._print('yaml {} not found!'.format(path))
 
         return information
 
