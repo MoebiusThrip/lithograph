@@ -588,6 +588,28 @@ class Core(list):
 
         return duration
 
+    def _swap(self, originals, replacements):
+        """Swap a members in list of originals with those from replacements.
+
+        ArgumentsL
+            originals: list
+            replacements: list
+
+        Returns:
+            list
+        """
+
+        # swap in self.labels
+        for index, replacement in enumerate(replacements):
+
+            # if the label exists and the index is within
+            if replacement and index < len(originals):
+
+                # change label
+                originals[index] = replacement
+
+        return originals
+
     def _tabulate(self, rows, destination):
         """Create a csv file from a list of records.
 
