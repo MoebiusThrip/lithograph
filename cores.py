@@ -511,21 +511,38 @@ class Core(list):
 
         return paths
 
-    def _skim(self, members):
+    def _skim(self, members, maintain=False):
         """Skim off the unique members from a list.
 
         Arguments:
             members: list
+            maintain: boolean: maintain order?
 
         Returns:
             list
         """
 
-        # trim duplicates and sort
-        members = list(set(members))
-        members.sort()
+        # if maintaining order
+        if maintain:
 
-        return members
+            # for each member
+            uniques = []
+            for member in members:
+
+                # if not already in uniques
+                if member not in uniques:
+
+                    # add it
+                    uniques.append(member)
+
+        # otherwise
+        else:
+
+            # trim duplicates and sort
+            uniques = list(set(members))
+            uniques.sort()
+
+        return uniques
 
     def _stamp(self, message, initial=False, clock=True):
         """Start timing a block of code, and print results with a message.
