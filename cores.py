@@ -439,6 +439,9 @@ class Core(list):
             None
         """
 
+        # make folder in case it doesn't exist
+        self._make(folder)
+
         # construct new name
         new = '{}/{}'.format(folder, path.split('/')[-1])
 
