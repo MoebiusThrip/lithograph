@@ -8,23 +8,25 @@ import shutil
 # if in python3, use instruction from wiki
 if sys.version_info.major == 3:
 
+    # import distro (not available in python 2)
+    import distro
+
     # define path
     ACpath = '/tis/releases/ac/python-science/1.0.0/'
 
-    # check for centos distribution
-    import distro
+    # if running on Centors
     if distro.id() == 'centos':
 
-        # and add paths
-        sys.path.append(os.path.join(ACpath,'lib/python3.6/site-packages'))
-        sys.path.append(os.path.join(ACpath,'lib64/python3.6/site-packages'))
+        # define path for python3 distribution
+        sys.path.insert(1,os.path.join(ACpath,'lib/python3.6/site-packages'))
+        sys.path.insert(1,os.path.join(ACpath,'lib64/python3.6/site-packages'))
         print('Setting path for Python 3 on CentOS')
 
-    # otherwise if ubuntu
+    # otherwise, for Ubuntu 20
     elif distro.id() == 'ubuntu':
 
-        # add paths
-        sys.path.append(os.path.join(ACpath,'lib/python3.8/site-packages'))
+        # define path for python 3 distribution
+        sys.path.insert(1,os.path.join(ACpath,'lib/python3.8/site-packages'))
         print('Setting path for Python 3 on Ubuntu')
 
 # otherwise, if python 2
@@ -36,7 +38,7 @@ if sys.version_info.major == 2:
     PermissionError = OSError
 
 # print path
-print('Path is', sys.path)
+print('Path is', sys.path[1:])
 
 # import file manipulations
 import json
