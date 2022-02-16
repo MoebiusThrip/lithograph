@@ -118,11 +118,12 @@ class Core(list):
 
         return information
 
-    def _clean(self, directory):
+    def _clean(self, directory, force=False):
         """Delete all files in a directory and the directory itself.
 
         Arguments:
             directory: str, directory path
+            force=True: boolean, avoid asking
 
         Returns:
             None
@@ -131,9 +132,17 @@ class Core(list):
         # get all paths in the directory
         paths = self._see(directory)
 
-        # prompt user and continue on blank
-        prompt = input('erase {} !?>>'.format(directory))
-        if prompt in ('', ' '):
+        # set default prompt
+        prompt = 'X'
+
+        # if not forcing delete
+        if not force:
+
+            # prompt user and continue on blank
+            prompt = input('erase {} !?>>'.format(directory))
+
+        # if blank reply or forcing
+        if prompt in ('', ' ') or force:
 
             # remove all files
             [os.remove(path) for path in paths]
