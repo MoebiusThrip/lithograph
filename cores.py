@@ -624,7 +624,7 @@ class Core(list):
 
         return originals
 
-    def _tabulate(self, rows, destination):
+    def _table(self, rows, destination):
         """Create a csv file from a list of records.
 
         Arguments:
@@ -642,6 +642,25 @@ class Core(list):
             csv.writer(pointer).writerows(rows)
 
         return None
+
+    def _tape(self, table, delimiter=','):
+        """Create rows from a csv fiel.
+
+        Arguments:
+            table: str, csv file
+            delimiter: delimitation charactr
+
+        Returns:
+            list of list of str
+        """
+
+        # open the table
+        with open(table) as pointer:
+
+            # create rows form reader
+            rows = [row for row in csv.reader(pointer, delimiter=delimiter)]
+
+        return rows
 
     def _tell(self, queue):
         """Enumerate the contents of a list.
