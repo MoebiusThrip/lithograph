@@ -520,8 +520,18 @@ class Core(list):
             list of str, the file paths.
         """
 
-        # make paths
-        paths = ['{}/{}'.format(directory, path) for path in os.listdir(directory)]
+        # try to
+        try:
+
+            # make paths
+            paths = ['{}/{}'.format(directory, path) for path in os.listdir(directory)]
+
+        # unless the directory does not exist
+        except FileNotFoundError:
+
+            # in which case, alert and return empty list
+            self._print('{} does not exist'.format(directory))
+            paths = []
 
         return paths
 
