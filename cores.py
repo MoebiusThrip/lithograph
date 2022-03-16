@@ -45,7 +45,8 @@ import json
 import csv
 import yaml
 
-# import time
+# import time, datetime
+import datetime
 import time
 
 # import pretty print
@@ -485,6 +486,21 @@ class Core(list):
         self._print('renamed {}\nto {}\n'.format(path, destination))
 
         return None
+
+    def _note(self):
+        """Convert the time to a string for file names.
+
+        Arguments:
+            None
+
+        Returns:
+            str
+        """
+
+        # get now string
+        now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M')
+
+        return now
 
     def _print(self, *messages):
         """Print the message, localizes print statements.
