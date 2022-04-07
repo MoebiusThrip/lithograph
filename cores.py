@@ -14,7 +14,7 @@ if sys.version_info.major == 3:
     # define path
     ACpath = '/tis/releases/ac/python-science/1.0.0/'
 
-    # if running on Centors
+    # if running on Centos
     if distro.id() == 'centos':
 
         # define path for python3 distribution
