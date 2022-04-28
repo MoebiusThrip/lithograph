@@ -524,7 +524,7 @@ class Core(list):
         #     # print
         #     print(message)
 
-        return None
+        return message
 
     def _see(self, directory):
         """See all the paths in a directory.
