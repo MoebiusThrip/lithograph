@@ -650,12 +650,13 @@ class Core(list):
 
         return originals
 
-    def _table(self, rows, destination):
+    def _table(self, rows, destination, delimiter=','):
         """Create a csv file from a list of records.
 
         Arguments:
             rows: list of list of strings
             destination: str, file path
+            delimiter: str, separation character
 
         Returns:
             None
@@ -665,7 +666,7 @@ class Core(list):
         with open(destination, 'w') as pointer:
 
             # write csv
-            csv.writer(pointer).writerows(rows)
+            csv.writer(pointer, delimiter=delimiter).writerows(rows)
 
         return None
 
