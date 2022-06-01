@@ -130,8 +130,17 @@ class Core(list):
             None
         """
 
-        # get all paths in the directory
-        paths = self._see(directory)
+        # try to
+        try:
+
+            # get all paths in the directory
+            paths = self._see(directory)
+
+        # unless not a directory
+        except NotADirectoryError:
+
+            # set path to just file
+            paths = [directory]
 
         # set default prompt
         prompt = 'X'
