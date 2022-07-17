@@ -119,6 +119,25 @@ class Core(list):
 
         return information
 
+    def _ask(self, path):
+        """Retrieve file details.
+
+        Arguments:
+            path: str, path name
+
+        Returns:
+            dict
+        """
+
+        # get file stats
+        details = os.stat(path)
+
+        # make into dictionary
+        fields = [field for field in dir(details) if field.startswith('st')]
+        details = {field: details.__getattribute__(field) for field in fields}
+
+        return details
+
     def _clean(self, directory, force=False):
         """Delete all files in a directory and the directory itself.
 
