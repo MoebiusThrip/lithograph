@@ -424,13 +424,13 @@ class Core(list):
 
         return contents
 
-    def _look(self, contents, level=0):
+    def _look(self, contents, level=0, destination=None):
         """Look at the contents of an h5 file, to a certain level.
 
         Arguments:
             contents: object to look at
             level=2: the max nesting level to see
-            five: the h5 file
+            destination: str, file path for destination
 
         Returns:
             None
@@ -441,6 +441,15 @@ class Core(list):
 
         # pretty print it
         pprint.pprint(data)
+
+        # check for destination
+        if destination:
+
+            # and print to it
+            with open(destination, 'w') as pointer:
+
+                # pretty print to it
+                pprint.pprint(data, pointer)
 
         return None
 
