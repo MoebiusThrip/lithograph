@@ -539,6 +539,25 @@ class Core(list):
 
         return now
 
+    def _pad(self, number, length=2):
+        """Pad a number by converting to string and zfilling.
+
+        Arguments:
+            number: int
+            length: length of final number
+
+        Returns:
+            str
+        """
+
+        # convert to str
+        pad = str(number)
+
+        # zfill
+        pad = pad.zfill(length)
+
+        return pad
+
     def _print(self, *messages):
         """Print the message, localizes print statements.
 
