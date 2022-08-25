@@ -640,6 +640,21 @@ class Core(list):
 
         return uniques
 
+    def _show(self, directory):
+        """Show the contents of a directory.
+
+        Arguments:
+            directory: str, directory path
+
+        Returns:
+            None
+        """
+
+        # display contents of the directory
+        self._tell(self._see(directory))
+
+        return None
+
     def _stamp(self, message, initial=False, clock=True):
         """Start timing a block of code, and print results with a message.
 
