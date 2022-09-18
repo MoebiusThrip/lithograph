@@ -468,9 +468,22 @@ class Core(list):
 
             # create the directory
             os.mkdir(folder)
+            self._print('made {}'.format(folder))
 
-        # unless directory already exists, or none was given
-        except (FileExistsError, FileNotFoundError, PermissionError):
+        # or if part of the directory is not found
+        except FileNotFoundError:
+
+            # in which case, print error
+            self._print('error making {}, file not found error!'.format(folder))
+
+        # or if there are permissions issues
+        except PermissionError:
+
+            # in which case, print error
+            self._print('error making {}, permissions error!'.format(folder))
+
+        # unless directory already exists
+        except FileExistsError:
 
             # in which case, nevermind
             pass
