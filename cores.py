@@ -8,26 +8,35 @@ import shutil
 # if in python3, use instruction from wiki
 if sys.version_info.major == 3:
 
-    # import distro (not available in python 2)
-    import distro
+    # try to
+    try:
 
-    # define path
-    ACpath = '/tis/releases/ac/python-science/1.0.0/'
+        # import distro (not available in python 2)
+        import distro
 
-    # if running on Centos
-    if distro.id() == 'centos':
+        # define path
+        ACpath = '/tis/releases/ac/python-science/1.0.0/'
 
-        # define path for python3 distribution
-        sys.path.insert(1,os.path.join(ACpath,'lib/python3.6/site-packages'))
-        sys.path.insert(1,os.path.join(ACpath,'lib64/python3.6/site-packages'))
-        print('Setting path for Python 3 on CentOS')
+        # if running on Centos
+        if distro.id() == 'centos':
 
-    # otherwise, for Ubuntu 20
-    elif distro.id() == 'ubuntu':
+            # define path for python3 distribution
+            sys.path.insert(1,os.path.join(ACpath,'lib/python3.6/site-packages'))
+            sys.path.insert(1,os.path.join(ACpath,'lib64/python3.6/site-packages'))
+            print('Setting path for Python 3 on CentOS')
 
-        # define path for python 3 distribution
-        sys.path.insert(1,os.path.join(ACpath,'lib/python3.8/site-packages'))
-        print('Setting path for Python 3 on Ubuntu')
+        # otherwise, for Ubuntu 20
+        elif distro.id() == 'ubuntu':
+
+            # define path for python 3 distribution
+            sys.path.insert(1,os.path.join(ACpath,'lib/python3.8/site-packages'))
+            print('Setting path for Python 3 on Ubuntu')
+
+    # unless on nccs
+    except ModuleNotFoundError:
+
+        # skip
+        print('skipping distro, on nccs?')
 
 # otherwise, if python 2
 if sys.version_info.major == 2:
