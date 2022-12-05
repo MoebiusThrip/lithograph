@@ -432,11 +432,12 @@ class Lithograph(Core):
 
         return repulsions
 
-    def etch(self, number=20):
+    def etch(self, number=20, stochastic=True):
         """Etch a glass for a number of steps.
 
         Arguments:
             number: int, number of time steps
+            stochastic: boolean, roll the dice for reaction?
 
         Returns:
             None
@@ -459,13 +460,16 @@ class Lithograph(Core):
             # make lattice
             lattice = self.lace(point)
 
-            # pick a random reaction based on weights
-            weights = [slat.weight for slat in lattice]
-            etching = numpy.random.choice(lattice, p=weights)
-
             # pick next point  based on highest weight
             lattice.sort(key=lambda slat: slat.weight, reverse=True)
             etching = lattice[0]
+
+            # but if rolling
+            if stochastic:
+
+                # pick a random reaction based on weights
+                weights = [slat.weight for slat in lattice]
+                etching = numpy.random.choice(lattice, p=weights)
 
             # update point and energy
             point = etching.trajectory[-1]
@@ -473,6 +477,7 @@ class Lithograph(Core):
             # update records
             self.etching.append(etching)
             self.lattice += lattice
+            self.history.append(etching.reaction)
 
         return None
 
@@ -551,6 +556,7 @@ class Lithograph(Core):
         axis.view_init(30, -125)
         pyplot.savefig('gazeii.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
@@ -691,6 +697,7 @@ class Lithograph(Core):
             axis.view_init(30, -125)
             pyplot.savefig('flowii.png')
             pyplot.clf()
+            pyplot.close()
 
             # await input
             propagate = not input('>>>? ')
@@ -775,6 +782,7 @@ class Lithograph(Core):
         # save the plot and clear
         pyplot.savefig('peer.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
@@ -833,6 +841,7 @@ class Lithograph(Core):
         axis.view_init(30, -125)
         pyplot.savefig('placeii.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
@@ -853,7 +862,7 @@ class Lithograph(Core):
         etching = self.etching
 
         # create time series
-        series = [etch[1][0] for etch in etching] + [etching[-1][1][-1]]
+        series = [etch.energies[0] for etch in etching] + [etching[-1].energies[-1]]
 
         # begin plot
         pyplot.clf()
@@ -867,6 +876,7 @@ class Lithograph(Core):
         # save plot
         pyplot.savefig('qualify.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
@@ -887,7 +897,7 @@ class Lithograph(Core):
         etching = self.etching
 
         # create time series
-        series = [etch[2] for etch in etching] + [etching[-1][4]]
+        series = [etch.trajectory[0] for etch in etching] + [etching[-1].trajectory[2]]
 
         # begin plot
         pyplot.clf()
@@ -908,6 +918,7 @@ class Lithograph(Core):
         # save plot
         pyplot.savefig('quantify.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
@@ -931,9 +942,12 @@ class Lithograph(Core):
         series = [[0 for reaction in self]]
         for entry in history:
 
+            # get index
+            indices = [index for index, reaction in enumerate(self) if reaction == entry]
+
             # add to index
             vector = series[-1][:]
-            vector[(int(entry / 2))] += 1
+            vector[indices[0]] += 1
             series.append(vector)
 
         # begin plot
@@ -953,6 +967,7 @@ class Lithograph(Core):
         # save plot
         pyplot.savefig('recite.png')
         pyplot.clf()
+        pyplot.close()
 
         return None
 
