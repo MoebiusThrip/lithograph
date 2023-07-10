@@ -677,6 +677,39 @@ class Core(list):
 
         return None
 
+    def _splay(self, tree, stub='', branches=None):
+        """Splay nested tree into branches.
+
+        Arguments:
+            tree: dict
+            stub: growing member
+
+        Returns:
+            list of str
+        """
+
+        # set default
+        branches = branches or []
+
+        # try to
+        try:
+
+            # go through each key
+            for field, twig in tree.items():
+
+                # add each branch
+                growth = '{}/{}'.format(stub, field)
+                branches += self._splay(twig, growth)
+
+        # unless a nod
+        except AttributeError:
+
+            # add to branch
+            growth = '{}/{}'.format(stub, tree)
+            branches += [growth]
+
+        return branches
+
     def _stamp(self, message, initial=False, clock=True):
         """Start timing a block of code, and print results with a message.
 
