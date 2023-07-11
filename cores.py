@@ -301,6 +301,39 @@ class Core(list):
 
         return None
 
+    def _file(self, path):
+        """Get the filename from a path.
+
+        Arguments:
+            path: str, pathname
+
+        Returns:
+            str, fio name
+        """
+
+        # get fileame
+        name = path.split('/')[0]
+
+        return name
+
+    def _fold(self, path):
+        """Break apart a path name into directory and file.
+
+        Arguments:
+            path: str, pathname
+
+        Returns:
+            str, directory
+        """
+
+        # get fileame
+        name = path.split('/')[0]
+
+        # get folder
+        folder = path.replace('/{}'.format(name), '')
+
+        return folder
+
     def _group(self, members, function):
         """Group a set of members by the result of a function of the member.
 
@@ -604,6 +637,22 @@ class Core(list):
         #     print(message)
 
         return message
+
+    def _search(self, collection, word):
+        """Search a list for a member with a word.
+
+        Arguments:
+            collection: list of str
+            word: str
+
+        Returns:
+            list of str, member of list with word in it.
+        """
+
+        # get members
+        members = [member for member in collection if word in member]
+
+        return members
 
     def _see(self, directory):
         """See all the paths in a directory.
