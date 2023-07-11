@@ -210,8 +210,9 @@ class Core(list):
         # unless it is a directory
         except IsADirectoryError:
 
-            # in which case, alert and skip
-            self._print('{} is a directory'.format(path))
+            # in which case, copy into directory
+            pathii = '{}/{}'.format(destination, path.split('/')[-1])
+            shutil.copy(path, pathii)
 
         return None
 
