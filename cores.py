@@ -312,7 +312,7 @@ class Core(list):
         """
 
         # get fileame
-        name = path.split('/')[0]
+        name = path.split('/')[-1]
 
         return name
 
@@ -327,7 +327,7 @@ class Core(list):
         """
 
         # get fileame
-        name = path.split('/')[0]
+        name = path.split('/')[-1]
 
         # get folder
         folder = path.replace('/{}'.format(name), '')
