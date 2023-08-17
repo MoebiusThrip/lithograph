@@ -327,10 +327,10 @@ class Core(list):
         """
 
         # get fileame
-        name = path.split('/')[-1]
+        words = path.split('/')
 
         # get folder
-        folder = path.replace('/{}'.format(name), '')
+        folder = '/'.join(words[:-1])
 
         return folder
 
