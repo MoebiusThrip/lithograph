@@ -301,18 +301,22 @@ class Core(list):
 
         return None
 
-    def _file(self, path):
+    def _file(self, path, folders=0):
         """Get the filename from a path.
 
         Arguments:
             path: str, pathname
+            folders: int, number of subfolders
 
         Returns:
-            str, fio name
+            str, file name
         """
 
-        # get fileame
-        name = path.split('/')[-1]
+        # split on slash
+        fragments = path.split('/')
+
+        # join together fragments according to number
+        name = '/'.join(fragments[-(1 + folders):])
 
         return name
 
