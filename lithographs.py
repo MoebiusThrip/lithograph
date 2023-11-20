@@ -44,18 +44,20 @@ class Lithograph(Core):
         Core
     """
 
-    def __init__(self, yam):
+    def __init__(self, folder):
         """Initialize a Lithograph instance.
 
         Arguments:
-            transitions: str, file for transition list
+            folder: str, folder
 
         Returns:
             None
         """
 
-        # get the yaml file
-        self.yam = yam
+        # make placeholders
+        self.folder = folder
+        self.text = ''
+        self.yam = ''
 
         # reserve for bonds, species, and forces
         self.chemicals = []
@@ -106,6 +108,112 @@ class Lithograph(Core):
             information = yaml.safe_load(pointer)
 
         return information
+
+    def _assemble(self, vertical, horizontal, initial=None, extent=20):
+        """Assemble points and rates for quiver plots.
+
+        Arguments:
+            vertical: list of str, species on y axis
+            horizontal: list of str, species on x axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+
+        Returns:
+            list of vector field coordinates
+        """
+
+        # get default initial
+        initial = initial or {}
+
+        # construct base vector
+        base = [self.species[chemical]['quantity'] for chemical in self.chemicals]
+
+        # replace with initials
+        for chemical, quantity in initial.items():
+
+            # find the index
+            index = self.chemicals.index(chemical)
+            base[index] = quantity
+
+        # define binary function for choosing a species
+        def extracting(collection, species): return int(species in collection)
+
+        # construct vector based on species
+        vertical = [extracting(vertical, species) for species in self.chemicals]
+        horizontal = [extracting(horizontal, species) for species in self.chemicals]
+
+        # vectorize axes
+        vertical = numpy.array(vertical)
+        horizontal = numpy.array(horizontal)
+        initial = numpy.array(initial)
+
+        # begin points
+        points = []
+
+        # for each node
+        for node in range(extent):
+
+            # make row
+            row = []
+
+            # and each node again
+            for nodeii in range(extent):
+
+                # create a point
+                point = base + node * vertical + nodeii * horizontal
+                row.append(point)
+
+            # appendd to points
+            points.append(row)
+
+        # begin rate vectors
+        rates = []
+
+        # for each row
+        for row in points:
+
+            # make second row
+            rowii = []
+
+            # for each point
+            for point in row:
+
+                # begin rate vector
+                rate = [0] * len(self.chemicals)
+
+                # for each reaction
+                for reaction in self:
+
+                    # get indices
+                    chemicals = [reaction.nucleophile, reaction.reactant]
+                    chemicals += [reaction.product, reaction.leaver]
+                    indices = [self.chemicals.index(chemical) for chemical in chemicals]
+
+                    # compute change for forward and backward reactions
+                    change = reaction.forward * point[indices[0]] * point[indices[1]]
+                    changeii = reaction.backward * point[indices[2]] * point[indices[3]]
+
+                    # add to rate vector
+                    rate[indices[0]] += (changeii - change)
+                    rate[indices[1]] += (changeii - change)
+                    rate[indices[2]] += (change - changeii)
+                    rate[indices[3]] += (change - changeii)
+
+                # add to rates
+                rowii.append(numpy.array(rate))
+
+            # append to rates
+            rates.append(rowii)
+
+        # convert points by dot product
+        abscissa = numpy.array([[numpy.dot(horizontal, point) for point in row] for row in points])
+        ordinate = numpy.array([[numpy.dot(vertical, point) for point in row] for row in points])
+
+        # convert rates by dot product
+        vector = numpy.array([[numpy.dot(horizontal, rate) for rate in row] for row in rates])
+        vectorii = numpy.array([[numpy.dot(vertical, rate) for rate in row] for row in rates])
+
+        return abscissa, ordinate, vector, vectorii
 
     def _bind(self, chemical):
         """Create list of bonds in a chemical.
@@ -268,61 +376,71 @@ class Lithograph(Core):
         # get information from transitions file
         transitions = self._know(text)
 
-        # begin configuration
-        configuration = {'file': self.yam, 'reactions': [], 'species': [], 'bonds': [], 'repulsions': []}
+        # if text is not emtpy
+        if len(transitions) > 0:
 
-        # for each transition
-        species = []
-        bonds = []
-        repulsions = []
-        for transition in transitions:
+            # begin configuration
+            configuration = {'file': self.yam, 'reactions': [], 'species': [], 'bonds': [], 'repulsions': []}
 
-            # add to species, except for electrophile
-            chemicals = self._parse(transition)
-            species += chemicals[1:]
+            # for each transition
+            species = []
+            bonds = []
+            repulsions = []
+            for transition in transitions:
 
-            # unpack
-            electrophile, nucleophile, reactant, product, leaver = chemicals
+                # add to species, except for electrophile
+                chemicals = self._parse(transition)
+                species += chemicals[1:]
 
-            # make reaction
-            reaction = {'transition': transition, 'electrophile': electrophile, 'nucleophile': nucleophile}
-            reaction.update({'reactant': reactant, 'product': product, 'leaver': leaver})
-            reaction.update({'catalysis': 0, 'color': 'black'})
-            configuration['reactions'].append(reaction)
+                # unpack
+                electrophile, nucleophile, reactant, product, leaver = chemicals
 
-        # remove duplicates and sort
-        species = list(set(species))
-        species.sort()
+                # make reaction
+                reaction = {'transition': transition, 'electrophile': electrophile, 'nucleophile': nucleophile}
+                reaction.update({'reactant': reactant, 'product': product, 'leaver': leaver})
+                reaction.update({'catalysis': 0, 'color': 'black'})
+                configuration['reactions'].append(reaction)
 
-        # add each entry
-        for chemical in species:
+            # remove duplicates and sort
+            species = list(set(species))
+            species.sort()
 
-            # make entry
-            configuration['species'].append({'chemical': chemical, 'quantity': 0, 'color': 'black'})
+            # add each entry
+            for chemical in species:
 
-            # get all bonds and repulsions
-            bonds += self._bind(chemical)
-            repulsions += self._repulse(chemical)
+                # make entry
+                configuration['species'].append({'chemical': chemical, 'quantity': 0, 'color': 'black'})
 
-        # add each bond
-        bonds = list(set(bonds))
-        bonds.sort()
-        for bond in bonds:
+                # get all bonds and repulsions
+                bonds += self._bind(chemical)
+                repulsions += self._repulse(chemical)
 
-            # make entry
-            configuration['bonds'].append({'bond': bond, 'energy': 0})
+            # add each bond
+            bonds = list(set(bonds))
+            bonds.sort()
+            for bond in bonds:
 
-        # add each repulsion
-        repulsions = list(set(repulsions))
-        repulsions.sort()
-        for repulsion in repulsions:
+                # make entry
+                configuration['bonds'].append({'bond': bond, 'energy': 0})
 
-            # make entry
-            configuration['repulsions'].append({'repulsion': repulsion, 'energy': 0})
+            # add each repulsion
+            repulsions = list(set(repulsions))
+            repulsions.sort()
+            for repulsion in repulsions:
 
-        # dump into yaml and format
-        self._dispense(configuration, self.yam)
-        self._disperse(self.yam)
+                # make entry
+                configuration['repulsions'].append({'repulsion': repulsion, 'energy': 0})
+
+            # dump into yaml and format
+            self._dispense(configuration, self.yam)
+            self._disperse(self.yam)
+
+        # otherwise
+        else:
+
+            # print error
+            self._print('no text file, creating...')
+            self._jot([], self.text)
 
         return None
 
@@ -338,6 +456,13 @@ class Lithograph(Core):
         Populates:
             self
         """
+
+        # make folder
+        self._make(self.folder)
+
+        # populate text and yam
+        self.text = '{}/{}.txt'.format(self.folder, self.folder)
+        self.yam = '{}/{}.yaml'.format(self.folder, self.folder)
 
         # try to
         try:
@@ -410,8 +535,7 @@ class Lithograph(Core):
             self._print('no yams!, generating...')
 
             # generate from text
-            text = self.yam.replace('yaml', 'txt')
-            self._generate(text)
+            self._generate(self.text)
 
         return None
 
@@ -552,9 +676,9 @@ class Lithograph(Core):
 
         # save the plot and clear
         axis.view_init(30, 125)
-        pyplot.savefig('gaze.png')
+        pyplot.savefig('{}/gaze.png'.format(self.folder))
         axis.view_init(30, -125)
-        pyplot.savefig('gazeii.png')
+        pyplot.savefig('{}/gazeii.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
@@ -693,9 +817,9 @@ class Lithograph(Core):
 
             # save the plot and clear
             axis.view_init(30, 125)
-            pyplot.savefig('flow.png')
+            pyplot.savefig('{}/flow.png'.format(self.folder))
             axis.view_init(30, -125)
-            pyplot.savefig('flowii.png')
+            pyplot.savefig('{}/flowii.png'.format(self.folder))
             pyplot.clf()
             pyplot.close()
 
@@ -780,7 +904,7 @@ class Lithograph(Core):
             #pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=5)
 
         # save the plot and clear
-        pyplot.savefig('peer.png')
+        pyplot.savefig('{}/peer.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
@@ -837,13 +961,32 @@ class Lithograph(Core):
 
         # save the plot and clear
         axis.view_init(30, 125)
-        pyplot.savefig('place.png')
+        pyplot.savefig('{}/place.png'.format(self.folder))
         axis.view_init(30, -125)
-        pyplot.savefig('placeii.png')
+        pyplot.savefig('{}/placeii.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
         return None
+
+    def point(self, vertical, horizontal, initial=None, extent=20):
+        """Draw a quiver and stream plot based on a two dimensional projection.
+
+        Arguments:
+            vertical: list of floats, vertical axis
+            horizontal: list of floats, horizontal axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+
+        Returns:
+            None
+        """
+
+        # make quiver and stream plots
+        self.quiver(vertical, horizontal, initial, extent)
+        self.stream(vertical, horizontal, initial, extent)
+
+        return
 
     def qualify(self):
         """Create a plot of energy with time point.
@@ -874,7 +1017,7 @@ class Lithograph(Core):
         pyplot.plot(time, series, color='black', marker=',')
 
         # save plot
-        pyplot.savefig('qualify.png')
+        pyplot.savefig('{}/qualify.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
@@ -916,11 +1059,48 @@ class Lithograph(Core):
             pyplot.plot(time, vector, color=color, marker=',')
 
         # save plot
-        pyplot.savefig('quantify.png')
+        pyplot.savefig('{}/quantify.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
         return None
+
+    def quiver(self, vertical, horizontal, initial=None, extent=20):
+        """Draw a quiver plot based on a two dimensional projection.
+
+        Arguments:
+            vertical: list of floats, vertical axis
+            horizontal: list of floats, horizontal axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+
+        Returns:
+            None
+        """
+
+        # get vector field coordinates
+        abscissa, ordinate, vector, vectorii = self._assemble(vertical, horizontal, initial, extent)
+
+        # plot quivwr
+        pyplot.clf()
+        pyplot.quiver(abscissa, ordinate, vector, vectorii, color='g')
+        pyplot.title('Vector Field')
+
+        # Setting x, y boundary limits
+        pyplot.xlim(abscissa.min(), abscissa.max())
+        pyplot.ylim(ordinate.min(), ordinate.max())
+
+        # set labels
+        pyplot.xlabel(','.join(horizontal))
+        pyplot.ylabel(','.join(vertical))
+
+        # plot with grid
+        pyplot.grid()
+
+        # save
+        pyplot.savefig('{}/quiver.png'.format(self.folder))
+
+        return
 
     def recite(self):
         """Recite the reaction counts.
@@ -965,11 +1145,48 @@ class Lithograph(Core):
             pyplot.plot(time, chemistry, color=color, marker=',')
 
         # save plot
-        pyplot.savefig('recite.png')
+        pyplot.savefig('{}/recite.png'.format(self.folder))
         pyplot.clf()
         pyplot.close()
 
         return None
+
+    def stream(self, vertical, horizontal, initial=None, extent=20):
+        """Draw a stream plot based on a two dimensional projection.
+
+        Arguments:
+            vertical: list of floats, vertical axis
+            horizontal: list of floats, horizontal axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+
+        Returns:
+            None
+        """
+
+        # get vector field coordinates
+        abscissa, ordinate, vector, vectorii = self._assemble(vertical, horizontal, initial, extent)
+
+        # plot stream
+        pyplot.clf()
+        pyplot.streamplot(abscissa, ordinate, vector, vectorii, density=1.4, linewidth=None, color='g')
+        pyplot.title('Vector Field')
+
+        # Setting x, y boundary limits
+        pyplot.xlim(abscissa.min(), abscissa.max())
+        pyplot.ylim(ordinate.min(), ordinate.max())
+
+        # set labels
+        pyplot.xlabel(','.join(horizontal))
+        pyplot.ylabel(','.join(vertical))
+
+        # plot with grid
+        pyplot.grid()
+
+        # save
+        pyplot.savefig('{}/stream.png'.format(self.folder))
+
+        return
 
     def study(self, number=100):
         """Perform an etch and graph results.
@@ -990,5 +1207,50 @@ class Lithograph(Core):
         self.quantify()
         self.qualify()
         self.recite()
+
+        return None
+
+    def trace(self):
+        """Trace reaction diagrams.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # for each reaction
+        for reaction in self:
+
+            # make gaussian for first half
+            abscissa = numpy.arange(-3, 0.1, 0.1)
+            constant = reaction.energies[1] - reaction.energies[0]
+            offset = reaction.energies[0]
+            ordinate = offset + constant * numpy.exp(-abscissa ** 2)
+
+            # make guassian for second half
+            abscissaii = numpy.arange(0, 3.1, 0.1)
+            constant = reaction.energies[1] - reaction.energies[2]
+            offset = reaction.energies[2]
+            ordinateii = offset + constant * numpy.exp(-abscissaii ** 2)
+
+            # plot
+            pyplot.clf()
+            pyplot.plot(abscissa, ordinate, '-g')
+            pyplot.plot(abscissaii, ordinateii, '-g')
+
+            # make limits
+            pyplot.xlim(-3, 3)
+            pyplot.ylim(min([ordinate.min(), ordinateii.min()]) - 1, 1)
+
+            # add title
+            formats = (reaction.nucleophile, reaction.reactant, reaction.transition, reaction.product, reaction.leaver)
+            title = '{} + {} -> {} <- {} + {}'.format(*formats)
+            pyplot.title(title)
+
+            # save
+            destination = '{}/trace_{}.png'.format(self.folder, reaction.transition.replace('-', '_'))
+            pyplot.savefig(destination)
 
         return None
