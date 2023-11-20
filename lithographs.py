@@ -150,20 +150,23 @@ class Lithograph(Core):
         # begin points
         points = []
 
+        # get half of extent
+        half = math.floor(extent / 2)
+
         # for each node
-        for node in range(extent):
+        for node in range(-half, half + 1):
 
             # make row
             row = []
 
             # and each node again
-            for nodeii in range(extent):
+            for nodeii in range(-half, half + 1):
 
                 # create a point
                 point = base + node * vertical + nodeii * horizontal
                 row.append(point)
 
-            # appendd to points
+            # append to points
             points.append(row)
 
         # begin rate vectors
@@ -1207,6 +1210,25 @@ class Lithograph(Core):
         self.quantify()
         self.qualify()
         self.recite()
+
+        return None
+
+    def tag(self, base, tag):
+        """Tag a file with a tag.
+
+        Arguments:
+            base: str, base file name
+            tag: str, added tag
+
+        Returns:
+            None
+        """
+
+        # find file
+        name = '{}/{}.png'.format(self.folder, base)
+
+        # replace
+        self._name(name, '_{}.png'.format(tag), 'png')
 
         return None
 
