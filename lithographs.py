@@ -1264,7 +1264,7 @@ class Lithograph(Core):
 
             # make limits
             pyplot.xlim(-3, 3)
-            pyplot.ylim(min([ordinate.min(), ordinateii.min()]) - 1, 1)
+            pyplot.ylim(min([ordinate.min(), ordinateii.min()]) - 0.1, 0.1)
 
             # add title
             formats = (reaction.nucleophile, reaction.reactant, reaction.transition, reaction.product, reaction.leaver)
