@@ -1228,7 +1228,7 @@ class Lithograph(Core):
         name = '{}/{}.png'.format(self.folder, base)
 
         # replace
-        self._name(name, '_{}.png'.format(tag), 'png')
+        self._name(name, '_{}.png'.format(tag), '.png')
 
         return None
 
