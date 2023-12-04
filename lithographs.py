@@ -113,8 +113,8 @@ class Lithograph(Core):
         """Assemble points and rates for quiver plots.
 
         Arguments:
-            vertical: list of str, species on y axis
-            horizontal: list of str, species on x axis
+            vertical: list of str or dict of str, float, species on y axis
+            horizontal: list of str or dict of str, float, species on x axis
             initial: list of floats, initial coordinates
             extent: float, extent along axes
 
@@ -122,19 +122,12 @@ class Lithograph(Core):
             list of vector field coordinates
         """
 
+        # vectorize axes
+        vertical = self._vectorize(vertical)
+        horizontal = self._vectorize(horizontal)
+
         # get base vector
         base = self._initialize(initial)
-
-        # define binary function for choosing a species
-        def extracting(collection, species): return int(species in collection)
-
-        # construct vector based on species
-        vertical = [extracting(vertical, species) for species in self.chemicals]
-        horizontal = [extracting(horizontal, species) for species in self.chemicals]
-
-        # vectorize axes
-        vertical = numpy.array(vertical)
-        horizontal = numpy.array(horizontal)
 
         # begin points
         points = []
@@ -337,6 +330,34 @@ class Lithograph(Core):
         base = numpy.array(base)
 
         return base
+
+    def _label(self, chemicals):
+        """Make a vector label from chemicals and quantities.
+
+        Arguments:
+            chemicals: list of str, or dict of str, floats
+
+        Returns:
+            numpy array
+        """
+
+        # check for list
+        if isinstance(chemicals, list):
+
+            # convert to dict
+            chemicals = {chemical: 1.0 for chemical in chemicals}
+
+        # sort items
+        details = list(chemicals.items())
+        details.sort(key=lambda pair: abs(pair[1]))
+
+        # creat text pairs
+        texts = ['{}: {}'.format(chemical, quantity) for chemical, quantity in details]
+
+        # join to make a label
+        label = ', '.join(texts)
+
+        return label
 
     def _parse(self, transition):
         """Parse a transition state into reactants and products.
@@ -619,6 +640,30 @@ class Lithograph(Core):
         repulsions.sort()
 
         return repulsions
+
+    def _vectorize(self, chemicals):
+        """Vectorize a list of chemicals.
+
+        Arguments:
+            chemicals: list of str, or dict of str, floats
+
+        Returns:
+            numpy array
+        """
+
+        # check for list
+        if isinstance(chemicals, list):
+
+            # convert to dict
+            chemicals = {chemical: 1.0 for chemical in chemicals}
+
+        # begin vector
+        vector = [chemicals.get(chemical, 0) for chemical in self.chemicals]
+
+        # convert to array
+        vector = numpy.array(vector)
+
+        return vector
 
     def etch(self, number=20, stochastic=True):
         """Etch a glass for a number of steps.
@@ -1033,12 +1078,14 @@ class Lithograph(Core):
 
         return None
 
-    def plate(self, number=1000, modes=(0, 1), initial=None, extent=20, tag=''):
+    def plate(self, number=1000, modes=(0, 1), top=3, places=2, initial=None, extent=20, tag=''):
         """Create a plate from the most interesting slice through the phase space.
 
         Arguments:
             number: number of random points
             modes: tuple of ints, the pca modes to use
+            top: int, number of top vector magnitudes to take
+            places: int, number of decimal places to round the vector components
             initial: dict of species, quantities
             extent: extent of plate
             tag: str, tag for file name
@@ -1063,27 +1110,21 @@ class Lithograph(Core):
         # get the componetns
         components = decomposer.components_
 
-        return components
+        # make horizontal vector
+        zipper = list(zip(self.chemicals, components[modes[0]]))
+        zipper.sort(key=lambda pair: abs(pair[1]), reverse=True)
+        horizontal = {chemical: round(quantity, places) for chemical, quanity in zipper[:top]}
 
-    def point(self, vertical, horizontal, initial=None, extent=20, tag=''):
-        """Draw a quiver and stream plot based on a two dimensional projection.
+        # make vertical vector
+        zipper = list(zip(self.chemicals, components[modes[1]]))
+        zipper.sort(key=lambda pair: abs(pair[1]), reverse=True)
+        vertical = {chemical: round(quantity, places) for chemical, quanity in zipper[:top]}
 
-        Arguments:
-            vertical: list of floats, vertical axis
-            horizontal: list of floats, horizontal axis
-            initial: list of floats, initial coordinates
-            extent: float, extent along axes
-            tag: str, tag for naming files
+        # create plots
+        tag = 'pca_{}_{}'.format(*modes)
+        self.swirl(vertical, horizontal, initial, extent, tag)
 
-        Returns:
-            None
-        """
-
-        # make quiver and stream plots
-        self.quiver(vertical, horizontal, initial, extent, tag)
-        self.stream(vertical, horizontal, initial, extent, tag)
-
-        return
+        return None
 
     def qualify(self):
         """Create a plot of energy with time point.
@@ -1189,8 +1230,8 @@ class Lithograph(Core):
         pyplot.ylim(ordinate.min(), ordinate.max())
 
         # set labels
-        pyplot.xlabel(','.join(horizontal))
-        pyplot.ylabel(','.join(vertical))
+        pyplot.xlabel(self._label(horizontal))
+        pyplot.ylabel(self._label(vertical))
 
         # plot with grid
         pyplot.grid()
@@ -1282,8 +1323,8 @@ class Lithograph(Core):
         pyplot.ylim(ordinate.min(), ordinate.max())
 
         # set labels
-        pyplot.xlabel(','.join(horizontal))
-        pyplot.ylabel(','.join(vertical))
+        pyplot.xlabel(self._label(horizontal))
+        pyplot.ylabel(self._label(vertical))
 
         # plot with grid
         pyplot.grid()
@@ -1320,6 +1361,26 @@ class Lithograph(Core):
         self.recite()
 
         return None
+
+    def swirl(self, vertical, horizontal, initial=None, extent=20, tag=''):
+        """Draw a quiver and stream plot based on a two dimensional projection.
+
+        Arguments:
+            vertical: list of floats, vertical axis
+            horizontal: list of floats, horizontal axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+            tag: str, tag for naming files
+
+        Returns:
+            None
+        """
+
+        # make quiver and stream plots
+        self.quiver(vertical, horizontal, initial, extent, tag)
+        self.stream(vertical, horizontal, initial, extent, tag)
+
+        return
 
     def tag(self, base, tag):
         """Tag a file with a tag.
