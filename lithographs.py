@@ -349,7 +349,7 @@ class Lithograph(Core):
 
         # sort items
         details = list(chemicals.items())
-        details.sort(key=lambda pair: abs(pair[1]))
+        details.sort(key=lambda pair: abs(pair[1]), reverse=True)
 
         # creat text pairs
         texts = ['{}: {}'.format(chemical, quantity) for chemical, quantity in details]
@@ -1113,12 +1113,13 @@ class Lithograph(Core):
         # make horizontal vector
         zipper = list(zip(self.chemicals, components[modes[0]]))
         zipper.sort(key=lambda pair: abs(pair[1]), reverse=True)
-        horizontal = {chemical: round(quantity, places) for chemical, quanity in zipper[:top]}
+        horizontal = {chemical: round(quantity, places) for chemical, quantity in zipper[:top]}
 
         # make vertical vector
         zipper = list(zip(self.chemicals, components[modes[1]]))
+        zipper = [pair for pair in zipper if pair[0] not in horizontal.keys()]
         zipper.sort(key=lambda pair: abs(pair[1]), reverse=True)
-        vertical = {chemical: round(quantity, places) for chemical, quanity in zipper[:top]}
+        vertical = {chemical: round(quantity, places) for chemical, quantity in zipper[:top]}
 
         # create plots
         tag = 'pca_{}_{}'.format(*modes)
