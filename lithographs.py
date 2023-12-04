@@ -1053,10 +1053,17 @@ class Lithograph(Core):
         # convert to rates
         rates = numpy.array([self._rate(point) for point in points])
 
-        # convert to magnitudes
-        magnitudes = numpy.sqrt((rates ** 2).sum(axis=1))
+        # # convert to magnitudes
+        # magnitudes = numpy.sqrt((rates ** 2).sum(axis=1))
 
-        return magnitudes
+        # craete pca decomposition
+        decomposer = PCA(n_components=len(self.chemicals))
+        decomposer.fit(rates)
+
+        # get the componetns
+        components = decomposer.components_
+
+        return components
 
     def point(self, vertical, horizontal, initial=None, extent=20, tag=''):
         """Draw a quiver and stream plot based on a two dimensional projection.
