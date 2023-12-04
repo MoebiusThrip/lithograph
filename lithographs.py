@@ -122,18 +122,8 @@ class Lithograph(Core):
             list of vector field coordinates
         """
 
-        # get default initial
-        initial = initial or {}
-
-        # construct base vector
-        base = [self.species[chemical]['quantity'] for chemical in self.chemicals]
-
-        # replace with initials
-        for chemical, quantity in initial.items():
-
-            # find the index
-            index = self.chemicals.index(chemical)
-            base[index] = quantity
+        # get base vector
+        base = self._initialize(initial)
 
         # define binary function for choosing a species
         def extracting(collection, species): return int(species in collection)
@@ -145,7 +135,6 @@ class Lithograph(Core):
         # vectorize axes
         vertical = numpy.array(vertical)
         horizontal = numpy.array(horizontal)
-        initial = numpy.array(initial)
 
         # begin points
         points = []
@@ -181,29 +170,11 @@ class Lithograph(Core):
             # for each point
             for point in row:
 
-                # begin rate vector
-                rate = [0] * len(self.chemicals)
-
-                # for each reaction
-                for reaction in self:
-
-                    # get indices
-                    chemicals = [reaction.nucleophile, reaction.reactant]
-                    chemicals += [reaction.product, reaction.leaver]
-                    indices = [self.chemicals.index(chemical) for chemical in chemicals]
-
-                    # compute change for forward and backward reactions
-                    change = reaction.forward * point[indices[0]] * point[indices[1]]
-                    changeii = reaction.backward * point[indices[2]] * point[indices[3]]
-
-                    # add to rate vector
-                    rate[indices[0]] += (changeii - change)
-                    rate[indices[1]] += (changeii - change)
-                    rate[indices[2]] += (change - changeii)
-                    rate[indices[3]] += (change - changeii)
+                # calculate rate
+                rate = self._rate(point)
 
                 # add to rates
-                rowii.append(numpy.array(rate))
+                rowii.append(rate)
 
             # append to rates
             rates.append(rowii)
@@ -338,6 +309,34 @@ class Lithograph(Core):
         choice = pair[0]
 
         return choice
+
+    def _initialize(self, initial=None):
+        """Create initial species vector.
+
+        Arguments:
+            initial: dict of species, quantities
+
+        Returns:
+            numpy array, the center point
+        """
+
+        # get default initial
+        initial = initial or {}
+
+        # construct base vector
+        base = [self.species[chemical]['quantity'] for chemical in self.chemicals]
+
+        # replace with initials
+        for chemical, quantity in initial.items():
+
+            # find the index
+            index = self.chemicals.index(chemical)
+            base[index] = quantity
+
+        # convert to array
+        base = numpy.array(base)
+
+        return base
 
     def _parse(self, transition):
         """Parse a transition state into reactants and products.
@@ -541,6 +540,68 @@ class Lithograph(Core):
             self._generate(self.text)
 
         return None
+
+    def _randomize(self, number=1000, initial=None, extent=20):
+        """Create a set of ranom points within the designated extent.
+
+        Arguments:
+            number: number of points
+            initial: dict of species, quantities
+            extent: int, extent of sample space around initials
+
+        Returns:
+            numpy array of points
+        """
+
+        # get base
+        base = self._initialize(initial)
+
+        # begin points with random numbers
+        random = numpy.random.random((number, len(self.chemicals)))
+
+        # center on extent
+        random = (random - 0.5) * extent
+
+        # add to base
+        points = random + base
+
+        return points
+
+    def _rate(self, point):
+        """Calculate the rate vector for a given point.
+
+        Arguments:
+            point: list of floats
+
+        Returns:
+            numpy array
+        """
+
+        # begin rate vector
+        rate = [0] * len(self.chemicals)
+
+        # for each reaction
+        for reaction in self:
+
+            # get indices
+            chemicals = [reaction.nucleophile, reaction.reactant]
+            chemicals += [reaction.product, reaction.leaver]
+            indices = [self.chemicals.index(chemical) for chemical in chemicals]
+
+            # compute change for forward and backward reactions
+            change = reaction.forward * point[indices[0]] * point[indices[1]]
+            changeii = reaction.backward * point[indices[2]] * point[indices[3]]
+
+            # add to rate vector
+            rate[indices[0]] += (changeii - change)
+            rate[indices[1]] += (changeii - change)
+            rate[indices[2]] += (change - changeii)
+            rate[indices[3]] += (change - changeii)
+
+        # convert to numpy
+        rate = numpy.array(rate)
+
+        return rate
 
     def _repulse(self, chemical):
         """Create list of repulsions in a chemical.
@@ -972,7 +1033,32 @@ class Lithograph(Core):
 
         return None
 
-    def point(self, vertical, horizontal, initial=None, extent=20):
+    def plate(self, number=1000, modes=(0, 1), initial=None, extent=20, tag=''):
+        """Create a plate from the most interesting slice through the phase space.
+
+        Arguments:
+            number: number of random points
+            modes: tuple of ints, the pca modes to use
+            initial: dict of species, quantities
+            extent: extent of plate
+            tag: str, tag for file name
+
+        Returns:
+            None
+        """
+
+        # get ranom points
+        points = self._randomize(number, initial, extent)
+
+        # convert to rates
+        rates = numpy.array([self._rate(point) for point in points])
+
+        # convert to magnitudes
+        magnitudes = numpy.sqrt((rates ** 2).sum(axis=1))
+
+        return magnitudes
+
+    def point(self, vertical, horizontal, initial=None, extent=20, tag=''):
         """Draw a quiver and stream plot based on a two dimensional projection.
 
         Arguments:
@@ -980,14 +1066,15 @@ class Lithograph(Core):
             horizontal: list of floats, horizontal axis
             initial: list of floats, initial coordinates
             extent: float, extent along axes
+            tag: str, tag for naming files
 
         Returns:
             None
         """
 
         # make quiver and stream plots
-        self.quiver(vertical, horizontal, initial, extent)
-        self.stream(vertical, horizontal, initial, extent)
+        self.quiver(vertical, horizontal, initial, extent, tag)
+        self.stream(vertical, horizontal, initial, extent, tag)
 
         return
 
@@ -1068,7 +1155,7 @@ class Lithograph(Core):
 
         return None
 
-    def quiver(self, vertical, horizontal, initial=None, extent=20):
+    def quiver(self, vertical, horizontal, initial=None, extent=20, tag=''):
         """Draw a quiver plot based on a two dimensional projection.
 
         Arguments:
@@ -1076,6 +1163,7 @@ class Lithograph(Core):
             horizontal: list of floats, horizontal axis
             initial: list of floats, initial coordinates
             extent: float, extent along axes
+            tag: str, tag for file
 
         Returns:
             None
@@ -1100,8 +1188,14 @@ class Lithograph(Core):
         # plot with grid
         pyplot.grid()
 
+        # if given tag
+        if tag:
+
+            # add underscore
+            tag = '_{}'.format(tag)
+
         # save
-        pyplot.savefig('{}/quiver.png'.format(self.folder))
+        pyplot.savefig('{}/quiver{}.png'.format(self.folder, tag))
 
         return
 
@@ -1154,7 +1248,7 @@ class Lithograph(Core):
 
         return None
 
-    def stream(self, vertical, horizontal, initial=None, extent=20):
+    def stream(self, vertical, horizontal, initial=None, extent=20, tag=''):
         """Draw a stream plot based on a two dimensional projection.
 
         Arguments:
@@ -1162,6 +1256,7 @@ class Lithograph(Core):
             horizontal: list of floats, horizontal axis
             initial: list of floats, initial coordinates
             extent: float, extent along axes
+            tag: str, tag for file
 
         Returns:
             None
@@ -1186,8 +1281,14 @@ class Lithograph(Core):
         # plot with grid
         pyplot.grid()
 
+        # if given tag
+        if tag:
+
+            # add underscore
+            tag = '_{}'.format(tag)
+
         # save
-        pyplot.savefig('{}/stream.png'.format(self.folder))
+        pyplot.savefig('{}/stream{}.png'.format(self.folder, tag))
 
         return
 
