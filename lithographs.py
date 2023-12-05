@@ -1418,13 +1418,13 @@ class Lithograph(Core):
             # make gaussian for first half
             abscissa = numpy.arange(-3, 0.1, 0.1)
             constant = reaction.energies[1] - reaction.energies[0]
-            offset = reaction.energies[0]
+            offset = reaction.energies[0] + (reaction.catalysis - reaction.energies[1])
             ordinate = offset + constant * numpy.exp(-abscissa ** 2)
 
             # make guassian for second half
             abscissaii = numpy.arange(0, 3.1, 0.1)
             constant = reaction.energies[1] - reaction.energies[2]
-            offset = reaction.energies[2]
+            offset = reaction.energies[2] + (reaction.catalysis - reaction.energies[1])
             ordinateii = offset + constant * numpy.exp(-abscissaii ** 2)
 
             # plot
