@@ -145,6 +145,12 @@ class Core(list):
         fields = [field for field in dir(details) if field.startswith('st')]
         details = {field: details.__getattribute__(field) for field in fields}
 
+        # trasnlate details
+        details['metadata'] = str(datetime.datetime.fromtimestamp(details['st_ctime']))
+        details['accessed'] = str(datetime.datetime.fromtimestamp(details['st_atime']))
+        details['modified'] = str(datetime.datetime.fromtimestamp(details['st_mtime']))
+        details['megabytes'] = details['st_size'] / 1024 ** 2
+
         return details
 
     def _clean(self, directory, force=False):
