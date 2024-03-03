@@ -665,6 +665,86 @@ class Lithograph(Core):
 
         return vector
 
+    def diverge(self, vertical, horizontal, initial=None, extent=20, tag=''):
+        """Draw a divergence plot based on a two dimensional projection.
+
+        Arguments:
+            vertical: list of floats, vertical axis
+            horizontal: list of floats, horizontal axis
+            initial: list of floats, initial coordinates
+            extent: float, extent along axes
+            tag: str, tag for file
+
+        Returns:
+            None
+        """
+
+        # get vector field coordinates
+        abscissa, ordinate, vector, vectorii = self._assemble(vertical, horizontal, initial, extent)
+
+        # get quantities for each species
+        quantities = []
+        for chemical in self.chemicals:
+
+            # compute quantity
+            quantity = abscissa * horizontal.get(chemical, 0) + ordinate * vertical.get(chemical, 0)
+            quantities.append(quantity)
+
+        # calculate divergence contributions for each chemical
+        divergence = []
+        for reaction in self:
+
+            # add contribution from reactant
+            index = self.chemicals.index(reaction.reactant)
+            contribution = -reaction.forward * quantities[index]
+            divergence.append(contribution)
+
+            # add contribution from nucleophile
+            index = self.chemicals.index(reaction.nucleophile)
+            contribution = -reaction.forward * quantities[index]
+            divergence.append(contribution)
+
+            # add contribution from product
+            index = self.chemicals.index(reaction.product)
+            contribution = -reaction.backward * quantities[index]
+            divergence.append(contribution)
+
+            # add contribution from leaving group
+            index = self.chemicals.index(reaction.leaver)
+            contribution = -reaction.backward * quantities[index]
+            divergence.append(contribution)
+
+        # add all contributions
+        divergence = numpy.array(divergence)
+        divergence = divergence.sum(axis=0)
+
+        # plot divergence
+        pyplot.clf()
+        pyplot.imshow(divergence)
+        pyplot.title('Divergence')
+        #
+        # # Setting x, y boundary limits
+        # pyplot.xlim(abscissa.min(), abscissa.max())
+        # pyplot.ylim(ordinate.min(), ordinate.max())
+        #
+        # set labels
+        pyplot.xlabel(self._label(horizontal))
+        pyplot.ylabel(self._label(vertical))
+        #
+        # # plot with grid
+        # pyplot.grid()
+        #
+        # if given tag
+        if tag:
+
+            # add underscore
+            tag = '_{}'.format(tag)
+
+        # save
+        pyplot.savefig('{}/divergence{}.png'.format(self.folder, tag))
+
+        return
+
     def etch(self, number=20, stochastic=True):
         """Etch a glass for a number of steps.
 
@@ -766,6 +846,9 @@ class Lithograph(Core):
         # plot all etchings
         for scratch in self.etching:
 
+            # set label
+            label = scratch.reaction.transition
+
             # get the point from the machine
             points = machine.transform(scratch.trajectory)
             energies = scratch.energies
@@ -782,6 +865,9 @@ class Lithograph(Core):
             # plot a marker
             marker = '2' if energies[2] > energies[0] else '1'
             #axis.plot([horizontals[1]], [verticals[1]], [energies[1]], color=color, marker=marker, markersize=5)
+
+        # # add legend
+        # pyplot.legend(loc='best')
 
         # save the plot and clear
         axis.view_init(30, 125)
@@ -995,6 +1081,9 @@ class Lithograph(Core):
         # plot all etchings
         for slat in self.etching:
 
+            # get label
+            label = slat.reaction.transition
+
             # get the point from the machine
             points = machine.transform(slat.trajectory)
             energies = slat.energies
@@ -1011,6 +1100,9 @@ class Lithograph(Core):
             # plot a marker
             marker = '2' if energies[2] > energies[0] else '1'
             #pyplot.plot([horizontals[1]], [verticals[1]], color=color, marker=marker, markersize=5)
+
+        # # add legend
+        # pyplot.legend(loc='best')
 
         # save the plot and clear
         pyplot.savefig('{}/peer.png'.format(self.folder))
@@ -1162,11 +1254,11 @@ class Lithograph(Core):
 
         return None
 
-    def quantify(self):
+    def quantify(self, species=None):
         """Create a plot of all species with time point.
 
         Arguments:
-            None
+            species: list of str, species of interest
 
         Returns:
             None
@@ -1174,6 +1266,9 @@ class Lithograph(Core):
 
         # print
         self._print('quantifying...')
+
+        # set default species
+        species = species or self.chemicals
 
         # grab etching
         etching = self.etching
@@ -1187,15 +1282,21 @@ class Lithograph(Core):
         # plot each series
         for index, chemical in enumerate(self.chemicals):
 
-            # create vector
-            chemistry = [entry[index] for entry in series]
-            vector = [math.log(entry + 1) for entry in chemistry]
-            time = [number for number, _ in enumerate(series)]
-            color = self.species[chemical]['color']
+            # if in species
+            if chemical in species:
 
-            # plot
-            #pyplot.plot(time, chemistry, color=color, marker=',')
-            pyplot.plot(time, vector, color=color, marker=',')
+                # create vector
+                chemistry = [entry[index] for entry in series]
+                vector = [math.log10(entry + 1) for entry in chemistry]
+                time = [number for number, _ in enumerate(series)]
+                color = self.species[chemical]['color']
+
+                # plot
+                #pyplot.plot(time, chemistry, color=color, marker=',')
+                pyplot.plot(time, vector, color=color, marker=',', label=chemical)
+
+        # add legend
+        pyplot.legend(loc='best')
 
         # save plot
         pyplot.savefig('{}/quantify.png'.format(self.folder))
@@ -1288,7 +1389,10 @@ class Lithograph(Core):
             color = self[index].color
 
             # plot
-            pyplot.plot(time, chemistry, color=color, marker=',')
+            pyplot.plot(time, chemistry, color=color, marker=',', label=reaction.transition)
+
+        # add legend
+        pyplot.legend(loc='best')
 
         # save plot
         pyplot.savefig('{}/recite.png'.format(self.folder))
@@ -1341,7 +1445,7 @@ class Lithograph(Core):
 
         return
 
-    def study(self, number=100):
+    def study(self, number=100, species=None):
         """Perform an etch and graph results.
 
         Arguments:
@@ -1351,13 +1455,16 @@ class Lithograph(Core):
             None
         """
 
+        # set default species
+        species = species or self.chemicals
+
         # etch
         self.etch(number)
 
         # draw graphs
         self.gaze()
         self.peer()
-        self.quantify()
+        self.quantify(species=species)
         self.qualify()
         self.recite()
 
@@ -1380,6 +1487,9 @@ class Lithograph(Core):
         # make quiver and stream plots
         self.quiver(vertical, horizontal, initial, extent, tag)
         self.stream(vertical, horizontal, initial, extent, tag)
+
+        # make divergence plots
+        self.diverge(vertical, horizontal, initial, extent, tag)
 
         return
 
@@ -1429,13 +1539,13 @@ class Lithograph(Core):
 
             # plot
             pyplot.clf()
-            pyplot.plot(abscissa, ordinate, '-g')
-            pyplot.plot(abscissaii, ordinateii, '-g')
+            pyplot.plot(abscissa, ordinate, color=reaction.color)
+            pyplot.plot(abscissaii, ordinateii, color=reaction.color)
 
             # make limits
             pyplot.xlim(-3, 3)
             pyplot.ylim(min([ordinate.min(), ordinateii.min()]) - 0.1, 0.1)
-            pyplot.ylim(-2 - 0.1, 0.1)
+            pyplot.ylim(-3 - 0.1, 0.1)
 
             # add title
             formats = (reaction.nucleophile, reaction.reactant, reaction.transition, reaction.product, reaction.leaver)
