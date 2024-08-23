@@ -601,7 +601,7 @@ class Core(list):
         """
 
         # get now string
-        now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M')
+        now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M%S')
 
         return now
 
