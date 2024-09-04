@@ -732,8 +732,12 @@ class Core(list):
             None
         """
 
+        # get paths and sort
+        paths = self._see(directory)
+        paths.sort()
+
         # display contents of the directory
-        self._tell(self._see(directory))
+        self._tell(paths)
 
         return None
 
