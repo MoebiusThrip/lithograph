@@ -8,35 +8,26 @@ import shutil
 # if in python3, use instruction from wiki
 if sys.version_info.major == 3:
 
-    # try to
-    try:
+    # import distro (not available in python 2)
+    import distro
 
-        # import distro (not available in python 2)
-        import distro
+    # define path
+    ACpath = '/tis/releases/ac/python-science/1.0.0/'
 
-        # define path
-        ACpath = '/tis/releases/ac/python-science/1.0.0/'
+    # if running on Centos
+    if distro.id() == 'centos':
 
-        # if running on Centos
-        if distro.id() == 'centos':
+        # define path for python3 distribution
+        sys.path.insert(1,os.path.join(ACpath,'lib/python3.6/site-packages'))
+        sys.path.insert(1,os.path.join(ACpath,'lib64/python3.6/site-packages'))
+        print('Setting path for Python 3 on CentOS')
 
-            # define path for python3 distribution
-            sys.path.insert(1,os.path.join(ACpath,'lib/python3.6/site-packages'))
-            sys.path.insert(1,os.path.join(ACpath,'lib64/python3.6/site-packages'))
-            print('Setting path for Python 3 on CentOS')
+    # otherwise, for Ubuntu 20
+    elif distro.id() == 'ubuntu':
 
-        # otherwise, for Ubuntu 20
-        elif distro.id() == 'ubuntu':
-
-            # define path for python 3 distribution
-            sys.path.insert(1,os.path.join(ACpath,'lib/python3.8/site-packages'))
-            print('Setting path for Python 3 on Ubuntu')
-
-    # unless on nccs
-    except ModuleNotFoundError:
-
-        # skip
-        print('skipping distro, on nccs?')
+        # define path for python 3 distribution
+        sys.path.insert(1,os.path.join(ACpath,'lib/python3.8/site-packages'))
+        print('Setting path for Python 3 on Ubuntu')
 
 # otherwise, if python 2
 if sys.version_info.major == 2:
@@ -145,12 +136,6 @@ class Core(list):
         fields = [field for field in dir(details) if field.startswith('st')]
         details = {field: details.__getattribute__(field) for field in fields}
 
-        # trasnlate details
-        details['metadata'] = str(datetime.datetime.fromtimestamp(details['st_ctime']))
-        details['accessed'] = str(datetime.datetime.fromtimestamp(details['st_atime']))
-        details['modified'] = str(datetime.datetime.fromtimestamp(details['st_mtime']))
-        details['megabytes'] = details['st_size'] / 1024 ** 2
-
         return details
 
     def _clean(self, directory, force=False):
@@ -216,9 +201,8 @@ class Core(list):
         # unless it is a directory
         except IsADirectoryError:
 
-            # in which case, copy into directory
-            pathii = '{}/{}'.format(destination, path.split('/')[-1])
-            shutil.copy(path, pathii)
+            # in which case, alert and skip
+            self._print('{} is a directory'.format(path))
 
         return None
 
@@ -306,43 +290,6 @@ class Core(list):
             json.dump(contents, pointer)
 
         return None
-
-    def _file(self, path, folders=0):
-        """Get the filename from a path.
-
-        Arguments:
-            path: str, pathname
-            folders: int, number of subfolders
-
-        Returns:
-            str, file name
-        """
-
-        # split on slash
-        fragments = path.split('/')
-
-        # join together fragments according to number
-        name = '/'.join(fragments[-(1 + folders):])
-
-        return name
-
-    def _fold(self, path):
-        """Break apart a path name into directory and file.
-
-        Arguments:
-            path: str, pathname
-
-        Returns:
-            str, directory
-        """
-
-        # get fileame
-        words = path.split('/')
-
-        # get folder
-        folder = '/'.join(words[:-1])
-
-        return folder
 
     def _group(self, members, function):
         """Group a set of members by the result of a function of the member.
@@ -601,7 +548,7 @@ class Core(list):
         """
 
         # get now string
-        now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M%S')
+        now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M')
 
         return now
 
@@ -647,22 +594,6 @@ class Core(list):
         #     print(message)
 
         return message
-
-    def _search(self, collection, word):
-        """Search a list for a member with a word.
-
-        Arguments:
-            collection: list of str
-            word: str
-
-        Returns:
-            list of str, member of list with word in it.
-        """
-
-        # get members
-        members = [member for member in collection if word in member]
-
-        return members
 
     def _see(self, directory):
         """See all the paths in a directory.
@@ -732,47 +663,10 @@ class Core(list):
             None
         """
 
-        # get paths and sort
-        paths = self._see(directory)
-        paths.sort()
-
         # display contents of the directory
-        self._tell(paths)
+        self._tell(self._see(directory))
 
         return None
-
-    def _splay(self, tree, stub='', branches=None):
-        """Splay nested tree into branches.
-
-        Arguments:
-            tree: dict
-            stub: growing member
-
-        Returns:
-            list of str
-        """
-
-        # set default
-        branches = branches or []
-
-        # try to
-        try:
-
-            # go through each key
-            for field, twig in tree.items():
-
-                # add each branch
-                growth = '{}/{}'.format(stub, field)
-                branches += self._splay(twig, growth)
-
-        # unless a nod
-        except AttributeError:
-
-            # add to branch
-            growth = '{}/{}'.format(stub, tree)
-            branches += [growth]
-
-        return branches
 
     def _stamp(self, message, initial=False, clock=True):
         """Start timing a block of code, and print results with a message.
