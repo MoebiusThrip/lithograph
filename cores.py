@@ -840,7 +840,7 @@ class Core(list):
 
         return originals
 
-    def _table(self, rows, destination, delimiter=','):
+    def _tabulate(self, rows, destination, delimiter=','):
         """Create a csv file from a list of records.
 
         Arguments:
