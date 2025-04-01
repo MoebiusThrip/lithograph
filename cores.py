@@ -61,6 +61,21 @@ import time
 # import pretty print
 import pprint
 
+# import scipy
+import scipy
+
+# try to
+try:
+
+    # import
+    import pidly
+
+# unless not pressent
+except ImportError:
+
+    # in which case, pass
+    pass
+
 
 # class Core
 class Core(list):
@@ -448,6 +463,35 @@ class Core(list):
 
         return lines
 
+    def _idle(self, destination, data):
+        """Construct and IDL file from a dict of data.
+
+        Arguments:
+            destination: str, the filepath
+            data: dict of arrays, the data
+
+        Returns:
+            None
+        """
+
+        # begin idl session
+        idle = pidly.IDL()
+
+        # for each field
+        for field, array in data.items():
+
+            # add data
+            setattr(idle, field, array)
+
+        # save variable list, with variables at top level
+        variables = ' ,'.join(data.keys())
+
+        # save file
+        idle('save, {}, filename="{}"'.format(variables, destination))
+        self._print('{} saved.'.format(destination))
+
+        return None
+
     def _load(self, path):
         """Load a json file.
 
@@ -647,6 +691,21 @@ class Core(list):
         #     print(message)
 
         return message
+
+    def _read(self, path):
+        """Read an IDL sav file.
+
+        Arguments:
+            path: str, path to file
+
+        Returns:
+            dict of file contents
+        """
+
+        # read file
+        contents = scipy.io.readsav(path)
+
+        return contents
 
     def _search(self, collection, word):
         """Search a list for a member with a word.
