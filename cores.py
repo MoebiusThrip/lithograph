@@ -959,6 +959,32 @@ class Core(list):
 
         return None
 
+    def _toss(self, words, source, sink):
+        """Copy files matching all keyword criteria from source to sink.
+
+        Arguments:
+            words: list of str, the keywords
+            source: str, source pathname
+            sink: str, sink pathname
+
+        Returns:
+            None
+        """
+
+        # get paths
+        paths = self._see(source)
+
+        # get subset
+        subset = [path for path in paths if all([word in self._file(path) for word in words])]
+
+        # for each path
+        for path in subset:
+
+            # copy to new directory
+            self._copy(path, sink)
+
+        return None
+
     def _unpack(self, contents, level=100, nest=0):
         """Unpack an h5 file into a dict.
 
