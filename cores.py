@@ -61,6 +61,9 @@ import time
 # import pretty print
 import pprint
 
+# import math
+import math
+
 # import scipy
 import scipy
 
@@ -167,6 +170,35 @@ class Core(list):
         details['megabytes'] = details['st_size'] / 1024 ** 2
 
         return details
+
+    def _chop(self, length, number=0, size=None):
+        """Get the sets of indices that chop a list into chunks.
+
+        Arguments:
+            length: int, length of list
+            number: int, number of chunks
+            size: int, size of each chunk
+
+        Returns:
+            list of (int, int) tuples, the bounding indices
+        """
+
+        # if given a size
+        if size:
+
+            # determine number of chunks
+            number = math.ceil(length / size)
+
+        # otherwise,
+        else:
+
+            # construct size
+            size = math.ceil(length / number)
+
+        # construct indices
+        pairs = [(index * size, size + index * size) for index in range(number)]
+
+        return pairs
 
     def _clean(self, directory, force=False):
         """Delete all files in a directory and the directory itself.
