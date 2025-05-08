@@ -53,7 +53,6 @@ print('Path is', sys.path[1:])
 import json
 import csv
 import yaml
-import openpyxl
 
 # import time, datetime
 import datetime
@@ -73,6 +72,18 @@ try:
 
     # import
     import pidly
+
+# unless not pressent
+except ImportError:
+
+    # in which case, pass
+    pass
+
+# try to
+try:
+
+    # import
+    import openpyxl
 
 # unless not pressent
 except ImportError:
