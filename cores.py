@@ -53,6 +53,7 @@ print('Path is', sys.path[1:])
 import json
 import csv
 import yaml
+import openpyxl
 
 # import time, datetime
 import datetime
@@ -353,6 +354,34 @@ class Core(list):
             json.dump(contents, pointer)
 
         return None
+
+    def _excel(self, table, delimiter=','):
+        """Create rows from an excel file.
+
+        Arguments:
+            table: str, excel file
+            delimiter: delimitation charactr
+
+        Returns:
+            list of list of str
+        """
+
+        # begin rows
+        rows = []
+
+        # open the workbook
+        book = openpyxl.load_workbook(table)
+
+        # activate
+        sheet = book.active
+
+        # for each row
+        for row in sheet.iter_rows(values_only=True):
+
+            # add row
+            rows.append(list(row))
+
+        return rows
 
     def _file(self, path, folders=0):
         """Get the filename from a path.
