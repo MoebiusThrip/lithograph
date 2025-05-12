@@ -61,6 +61,9 @@ import time
 # import pretty print
 import pprint
 
+# import regex
+import re
+
 # import math
 import math
 
@@ -658,6 +661,34 @@ class Core(list):
             pass
 
         return None
+
+    def _match(self, pattern, string):
+        """Use regex to find a pattern in a string.
+
+        Arguments:
+            pattern: str, regex pattern
+            string: str, the source string
+
+        Returns:
+            str, the found pattern
+        """
+
+        # default element to ''
+        element = ''
+
+        # try to
+        try:
+
+            # find element
+            element = re.findall(pattern, string)[0]
+
+        # unless not found
+        except IndexError:
+
+            # in which case, pass
+            pass
+
+        return element
 
     def _move(self, path, folder):
         """Move a file from one location or name to another.
