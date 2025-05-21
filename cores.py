@@ -5,6 +5,9 @@ import os
 import sys
 import shutil
 
+# import simplenamespace
+from types import SimpleNamespace
+
 # if in python3, use instruction from wiki
 if sys.version_info.major == 3:
 
@@ -751,6 +754,21 @@ class Core(list):
         now = datetime.datetime.fromtimestamp(self.now).strftime('%Ym%m%dt%H%M%S')
 
         return now
+
+    def _object(self):
+        """Create an object name space.
+
+        Arguments:
+            None
+
+        Returns:
+            simple name space object
+        """
+
+        # create space
+        space = SimpleNamespace()
+
+        return space
 
     def _pad(self, number, length=2):
         """Pad a number by converting to string and zfilling.
