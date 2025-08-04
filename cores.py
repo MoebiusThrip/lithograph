@@ -789,11 +789,12 @@ class Core(list):
 
         return pad
 
-    def _print(self, *messages):
+    def _print(self, *messages, display=True):
         """Print the message, localizes print statements.
 
         Arguments:
             *messagea: unpacked list of str, etc
+            display: boolean, display to screen?
 
         Returns:
             None
@@ -802,8 +803,11 @@ class Core(list):
         # construct  message
         message = ', '.join([str(message) for message in messages])
 
-        # print
-        print(message)
+        # if displaying
+        if display:
+
+            # print
+            print(message)
 
         # # go through each meassage
         # for message in messages:
