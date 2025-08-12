@@ -755,11 +755,11 @@ class Core(list):
 
         return now
 
-    def _object(self):
+    def _object(self, **attributes):
         """Create an object name space.
 
         Arguments:
-            None
+            **attributes, unpacked dictionary of attributes
 
         Returns:
             simple name space object
@@ -767,6 +767,12 @@ class Core(list):
 
         # create space
         space = SimpleNamespace()
+
+        # for each attribute
+        for name, quantity in attributes.items():
+
+            # set attribute
+            setattr(space, name, quantity)
 
         return space
 
