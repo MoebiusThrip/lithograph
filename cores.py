@@ -236,7 +236,7 @@ class Core(list):
             paths = self._see(directory)
 
         # unless not a directory
-        except NotADirectoryError:
+        except (NotADirectoryError, OSError):
 
             # set path to just file
             paths = [directory]
