@@ -871,7 +871,7 @@ class Core(list):
             paths = ['{}/{}'.format(directory, path) for path in os.listdir(directory)]
 
         # unless the directory does not exist
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
 
             # in which case, alert and return empty list
             self._print('{} does not exist'.format(directory))
