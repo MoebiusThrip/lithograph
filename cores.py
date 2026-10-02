@@ -164,7 +164,7 @@ class Core(list):
 
         return information
 
-    def _ask(self, path):
+    def _ask(self, path=None):
         """Retrieve file details.
 
         Arguments:
@@ -173,6 +173,9 @@ class Core(list):
         Returns:
             dict
         """
+
+        # set default path
+        path = path or self.current
 
         # get file stats
         details = os.stat(path)
